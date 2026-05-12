@@ -2,8 +2,11 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using ServideSideTweaks.Features.Chat;
+using ServideSideTweaks.Features.Doors;
 using ServideSideTweaks.Features.Pickables;
 using ServideSideTweaks.Features.Trees;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks
 {
@@ -22,6 +25,7 @@ namespace ServideSideTweaks
         public void Awake()
         {
             ModConfig.Bind(Config);
+            RegisterRoutedRpcHandlers();
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);
@@ -40,6 +44,15 @@ namespace ServideSideTweaks
         {
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
+        }
+
+        private static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Clear();
+            NormalChatToShout.RegisterRoutedRpcHandlers();
+            DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
+            TreeOwnershipHandoff.RegisterRoutedRpcHandlers();
+            PickableOwnershipHandoff.RegisterRoutedRpcHandlers();
         }
     }
 } 

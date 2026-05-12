@@ -1,21 +1,32 @@
 using System;
 using UnityEngine;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks.Features.Chat
 {
     internal static class NormalChatToShout
     {
-        private static readonly int SayHash = "Say".GetStableHashCode();
         private static readonly int ChatMessageHash = "ChatMessage".GetStableHashCode();
 
-        internal static void TryConvert(ZRoutedRpc.RoutedRPCData rpcData)
+        internal static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Register("Say", HandleSay);
+        }
+
+        private static RoutedRpcAction HandleSay(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            TryConvert(rpcData);
+            return RoutedRpcAction.Continue;
+        }
+
+        private static void TryConvert(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (ModConfig.ConvertNormalChatToShout.Value != true || ZNet.instance == null || !ZNet.instance.IsServer())
             {
                 return;
             }
 
-            if (rpcData.m_methodHash != SayHash || rpcData.m_targetZDO.IsNone())
+            if (rpcData.m_targetZDO.IsNone())
             {
                 return;
             }

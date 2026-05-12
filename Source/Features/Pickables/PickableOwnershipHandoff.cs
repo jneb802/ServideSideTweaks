@@ -2,22 +2,32 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ServideSideTweaks.Infrastructure;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks.Features.Pickables
 {
     internal static class PickableOwnershipHandoff
     {
-        private static readonly int PickHash = "RPC_Pick".GetStableHashCode();
         private static readonly Dictionary<ZDOID, PendingPick> PendingPicks = new();
 
-        internal static bool TryConsume(ZRoutedRpc.RoutedRPCData rpcData)
+        internal static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Register("RPC_Pick", HandlePick);
+        }
+
+        private static RoutedRpcAction HandlePick(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            return TryConsume(rpcData) ? RoutedRpcAction.Consume : RoutedRpcAction.Continue;
+        }
+
+        private static bool TryConsume(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (ModConfig.EnablePickableOwnershipHandoff.Value != true || ZNet.instance == null || !ZNet.instance.IsServer())
             {
                 return false;
             }
 
-            if (rpcData.m_methodHash != PickHash || rpcData.m_targetZDO.IsNone())
+            if (rpcData.m_targetZDO.IsNone())
             {
                 return false;
             }

@@ -1,8 +1,5 @@
 using HarmonyLib;
-using ServideSideTweaks.Features.Chat;
-using ServideSideTweaks.Features.Doors;
-using ServideSideTweaks.Features.Pickables;
-using ServideSideTweaks.Features.Trees;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks.Patches
 {
@@ -11,15 +8,7 @@ namespace ServideSideTweaks.Patches
     {
         private static bool Prefix(ZRoutedRpc.RoutedRPCData rpcData)
         {
-            if (PickableOwnershipHandoff.TryConsume(rpcData))
-            {
-                return false;
-            }
-
-            DoorOwnershipHandoff.TryApply(rpcData);
-            TreeOwnershipHandoff.TrySchedule(rpcData);
-            NormalChatToShout.TryConvert(rpcData);
-            return true;
+            return RoutedRpcDispatcher.Process(rpcData);
         }
     }
 }

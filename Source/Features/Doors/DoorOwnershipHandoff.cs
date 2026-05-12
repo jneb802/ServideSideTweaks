@@ -1,21 +1,31 @@
 using System;
 using UnityEngine;
 using ServideSideTweaks.Infrastructure;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks.Features.Doors
 {
     internal static class DoorOwnershipHandoff
     {
-        private static readonly int UseDoorHash = "UseDoor".GetStableHashCode();
+        internal static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Register("UseDoor", HandleUseDoor);
+        }
 
-        internal static void TryApply(ZRoutedRpc.RoutedRPCData rpcData)
+        private static RoutedRpcAction HandleUseDoor(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            TryApply(rpcData);
+            return RoutedRpcAction.Continue;
+        }
+
+        private static void TryApply(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (ModConfig.EnableDoorOwnershipHandoff.Value != true || ZNet.instance == null || !ZNet.instance.IsServer())
             {
                 return;
             }
 
-            if (rpcData.m_methodHash != UseDoorHash || rpcData.m_targetZDO.IsNone())
+            if (rpcData.m_targetZDO.IsNone())
             {
                 return;
             }

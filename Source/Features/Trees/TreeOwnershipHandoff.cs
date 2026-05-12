@@ -1,23 +1,34 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ServideSideTweaks.Infrastructure.Routing;
 
 namespace ServideSideTweaks.Features.Trees
 {
     internal static class TreeOwnershipHandoff
     {
-        private static readonly int DamageRpcHash = "RPC_Damage".GetStableHashCode();
         private static readonly Dictionary<ZDOID, PendingHandoff> PendingHandoffs = new();
         private static readonly Dictionary<ZDOID, float> LastHandoffTimes = new();
 
-        internal static void TrySchedule(ZRoutedRpc.RoutedRPCData rpcData)
+        internal static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Register("RPC_Damage", HandleDamage);
+        }
+
+        private static RoutedRpcAction HandleDamage(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            TrySchedule(rpcData);
+            return RoutedRpcAction.Continue;
+        }
+
+        private static void TrySchedule(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer())
             {
                 return;
             }
 
-            if (rpcData.m_methodHash != DamageRpcHash || rpcData.m_targetZDO.IsNone())
+            if (rpcData.m_targetZDO.IsNone())
             {
                 return;
             }
