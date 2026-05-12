@@ -1,0 +1,102 @@
+using BepInEx.Configuration;
+
+namespace ServideSideTweaks
+{
+    internal static class ModConfig
+    {
+        internal static ConfigEntry<bool> ConvertNormalChatToShout = null!;
+        internal static ConfigEntry<bool> EnableTreeBaseOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableTreeLogOwnershipHandoff = null!;
+        internal static ConfigEntry<float> TreeOwnershipHandoffDelaySeconds = null!;
+        internal static ConfigEntry<float> TreeOwnershipHandoffCooldownSeconds = null!;
+        internal static ConfigEntry<bool> DebugTreeOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableDoorOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> DebugDoorOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnablePickableOwnershipHandoff = null!;
+        internal static ConfigEntry<float> PickableOwnershipReplayDelaySeconds = null!;
+        internal static ConfigEntry<int> PickableOwnershipReplayAttempts = null!;
+        internal static ConfigEntry<float> PickableOwnershipReplayRetrySeconds = null!;
+        internal static ConfigEntry<bool> DebugPickableOwnershipHandoff = null!;
+
+        internal static void Bind(ConfigFile config)
+        {
+            ConvertNormalChatToShout = config.Bind(
+                "Chat",
+                "ConvertNormalChatToShout",
+                true,
+                "When true, normal chat messages are forwarded by the server as vanilla shout messages so all players receive them without typing /s.");
+
+            EnableTreeBaseOwnershipHandoff = config.Bind(
+                "TreeOwnership",
+                "EnableTreeBaseOwnershipHandoff",
+                true,
+                "When true, player damage to standing trees asks the server to hand ownership to the attacker after the current hit has finished.");
+
+            EnableTreeLogOwnershipHandoff = config.Bind(
+                "TreeOwnership",
+                "EnableTreeLogOwnershipHandoff",
+                true,
+                "When true, player damage to fallen logs asks the server to hand ownership to the attacker after the current hit has finished.");
+
+            TreeOwnershipHandoffDelaySeconds = config.Bind(
+                "TreeOwnership",
+                "TreeOwnershipHandoffDelaySeconds",
+                0.25f,
+                "Delay before applying a tree/log ownership handoff. This avoids changing owner during the same damage RPC.");
+
+            TreeOwnershipHandoffCooldownSeconds = config.Bind(
+                "TreeOwnership",
+                "TreeOwnershipHandoffCooldownSeconds",
+                1.0f,
+                "Minimum time between ownership handoffs for the same tree/log ZDO.");
+
+            DebugTreeOwnershipHandoff = config.Bind(
+                "TreeOwnership",
+                "DebugTreeOwnershipHandoff",
+                false,
+                "When true, logs tree/log ownership handoff decisions.");
+
+            EnableDoorOwnershipHandoff = config.Bind(
+                "DoorOwnership",
+                "EnableDoorOwnershipHandoff",
+                true,
+                "When true, door use RPCs transfer door ownership to the interacting player and route the door action to that player.");
+
+            DebugDoorOwnershipHandoff = config.Bind(
+                "DoorOwnership",
+                "DebugDoorOwnershipHandoff",
+                false,
+                "When true, logs door ownership handoff decisions.");
+
+            EnablePickableOwnershipHandoff = config.Bind(
+                "PickableOwnership",
+                "EnablePickableOwnershipHandoff",
+                false,
+                "Experimental. When true, pickable RPCs are consumed by the server, ownership is handed to the picker, and the pick RPC is replayed to that picker after a short delay.");
+
+            PickableOwnershipReplayDelaySeconds = config.Bind(
+                "PickableOwnership",
+                "PickableOwnershipReplayDelaySeconds",
+                0.35f,
+                "Delay before replaying a consumed pick RPC to the picker. This gives the owner update time to reach the client.");
+
+            PickableOwnershipReplayAttempts = config.Bind(
+                "PickableOwnership",
+                "PickableOwnershipReplayAttempts",
+                2,
+                "Maximum number of replay attempts for a consumed pick RPC.");
+
+            PickableOwnershipReplayRetrySeconds = config.Bind(
+                "PickableOwnership",
+                "PickableOwnershipReplayRetrySeconds",
+                0.35f,
+                "Delay between pick RPC replay attempts.");
+
+            DebugPickableOwnershipHandoff = config.Bind(
+                "PickableOwnership",
+                "DebugPickableOwnershipHandoff",
+                false,
+                "When true, logs pickable ownership handoff decisions.");
+        }
+    }
+}
