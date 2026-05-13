@@ -1,10 +1,9 @@
 using BepInEx.Configuration;
 
-namespace ServideSideTweaks
+namespace ServerSideTweaks
 {
     internal static class ModConfig
     {
-        internal static ConfigEntry<bool> ConvertNormalChatToShout = null!;
         internal static ConfigEntry<bool> EnableTreeBaseOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableTreeLogOwnershipHandoff = null!;
         internal static ConfigEntry<float> TreeOwnershipHandoffDelaySeconds = null!;
@@ -17,6 +16,8 @@ namespace ServideSideTweaks
         internal static ConfigEntry<int> PickableOwnershipReplayAttempts = null!;
         internal static ConfigEntry<float> PickableOwnershipReplayRetrySeconds = null!;
         internal static ConfigEntry<bool> DebugPickableOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableMineRockOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> DebugMineRockOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableResetChatCommands = null!;
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
@@ -24,12 +25,6 @@ namespace ServideSideTweaks
 
         internal static void Bind(ConfigFile config)
         {
-            ConvertNormalChatToShout = config.Bind(
-                "Chat",
-                "ConvertNormalChatToShout",
-                true,
-                "When true, normal chat messages are forwarded by the server as vanilla shout messages so all players receive them without typing /s.");
-
             EnableTreeBaseOwnershipHandoff = config.Bind(
                 "TreeOwnership",
                 "EnableTreeBaseOwnershipHandoff",
@@ -75,7 +70,7 @@ namespace ServideSideTweaks
             EnablePickableOwnershipHandoff = config.Bind(
                 "PickableOwnership",
                 "EnablePickableOwnershipHandoff",
-                false,
+                true,
                 "Experimental. When true, pickable RPCs are consumed by the server, ownership is handed to the picker, and the pick RPC is replayed to that picker after a short delay.");
 
             PickableOwnershipReplayDelaySeconds = config.Bind(
@@ -101,6 +96,18 @@ namespace ServideSideTweaks
                 "DebugPickableOwnershipHandoff",
                 false,
                 "When true, logs pickable ownership handoff decisions.");
+
+            EnableMineRockOwnershipHandoff = config.Bind(
+                "MineRockOwnership",
+                "EnableMineRockOwnershipHandoff",
+                true,
+                "When true, player pickaxe damage to MineRock and MineRock5 objects transfers ownership to the attacker before routing the damage RPC.");
+
+            DebugMineRockOwnershipHandoff = config.Bind(
+                "MineRockOwnership",
+                "DebugMineRockOwnershipHandoff",
+                false,
+                "When true, logs MineRock ownership handoff decisions.");
 
             EnableResetChatCommands = config.Bind(
                 "ResetChatCommands",

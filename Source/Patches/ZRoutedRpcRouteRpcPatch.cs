@@ -1,7 +1,7 @@
 using HarmonyLib;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Infrastructure.Routing;
 
-namespace ServideSideTweaks.Patches
+namespace ServerSideTweaks.Patches
 {
     [HarmonyPatch(typeof(ZRoutedRpc), "RouteRPC")]
     internal static class ZRoutedRpcRouteRpcPatch

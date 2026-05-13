@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using BepInEx;
 using UnityEngine;
 
-namespace ServideSideTweaks.Features.Chat
+namespace ServerSideTweaks.Features.Chat
 {
     internal static class ResetDataFile
     {
@@ -70,7 +70,7 @@ namespace ServideSideTweaks.Features.Chat
                     _lastError = ex.Message;
                 }
 
-                ServideSideTweaksPlugin.ModLogger.LogWarning($"Failed to read reset data file: {ex.Message}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to read reset data file: {ex.Message}");
             }
         }
 

@@ -1,9 +1,9 @@
 using System;
 using UnityEngine;
-using ServideSideTweaks.Infrastructure;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Infrastructure;
+using ServerSideTweaks.Infrastructure.Routing;
 
-namespace ServideSideTweaks.Features.Doors
+namespace ServerSideTweaks.Features.Doors
 {
     internal static class DoorOwnershipHandoff
     {
@@ -60,7 +60,7 @@ namespace ServideSideTweaks.Features.Doors
             }
             catch (Exception ex)
             {
-                ServideSideTweaksPlugin.ModLogger.LogWarning($"Failed to apply door ownership handoff: {ex}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to apply door ownership handoff: {ex}");
             }
         }
 
@@ -68,7 +68,7 @@ namespace ServideSideTweaks.Features.Doors
         {
             if (ModConfig.DebugDoorOwnershipHandoff.Value)
             {
-                ServideSideTweaksPlugin.ModLogger.LogInfo(message);
+                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
             }
         }
     }

@@ -4,8 +4,8 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <RootNamespace>ServideSideTweaks</RootNamespace>
-    <AssemblyName>ServideSideTweaks</AssemblyName>
+    <RootNamespace>ServerSideTweaks</RootNamespace>
+    <AssemblyName>serverSideTweaks</AssemblyName>
     <LangVersion>10</LangVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

@@ -1,4 +1,4 @@
-# Servide Side Tweaks
+# serverSideTweaks
 
 Server-side Valheim tweaks for dedicated servers.
 
@@ -6,7 +6,6 @@ Author: warpalicious
 
 ## Features
 
-- Converts normal chat messages into vanilla shout-style delivery on the server, so players can type normally instead of using `/s` for server-wide chat.
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
@@ -32,11 +31,10 @@ The built DLL will be in `bin/Debug/`. Install it on the Valheim server under `B
 
 Edit `Environment.props` if your Steam library is in a non-standard location. By default it uses `$HOME/Library/Application Support/Steam/steamapps/common/Valheim`.
 
-Runtime config is written to `BepInEx/config/warpalicious.ServideSideTweaks.cfg`.
+Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 
 | Section | Key | Default | Effect |
 | --- | --- | --- | --- |
-| Chat | ConvertNormalChatToShout | true | Server forwards normal chat as vanilla shout messages. |
 | ResetChatCommands | EnableResetChatCommands | true | Enables `!resets` chat commands. |
 | ResetChatCommands | ResetDataFile | praetoris_resets.json | Reset state JSON file written by Cron Job. Relative paths are resolved from `BepInEx/config`. |
 | ResetChatCommands | ResetDataRefreshSeconds | 5 | How often the server checks the reset data file for changes. |
@@ -48,7 +46,7 @@ Runtime config is written to `BepInEx/config/warpalicious.ServideSideTweaks.cfg`
 | TreeOwnership | DebugTreeOwnershipHandoff | false | Logs handoff decisions for testing. |
 | DoorOwnership | EnableDoorOwnershipHandoff | true | Server transfers door ownership to the interacting player before routing `UseDoor`. |
 | DoorOwnership | DebugDoorOwnershipHandoff | false | Logs door handoff decisions for testing. |
-| PickableOwnership | EnablePickableOwnershipHandoff | false | Experimental. Server consumes pick RPCs, transfers ownership, and replays the pick to the picker. |
+| PickableOwnership | EnablePickableOwnershipHandoff | true | Experimental. Server consumes pick RPCs, transfers ownership, and replays the pick to the picker. |
 | PickableOwnership | PickableOwnershipReplayDelaySeconds | 0.35 | Delay before replaying the consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayAttempts | 2 | Maximum replay attempts for a consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayRetrySeconds | 0.35 | Delay between replay attempts. |
@@ -56,7 +54,7 @@ Runtime config is written to `BepInEx/config/warpalicious.ServideSideTweaks.cfg`
 
 ## Reset Chat Commands
 
-Cron Job writes `praetoris_resets.json` in the BepInEx config folder when a tracked reset command executes. ServerSideTweaks reads that local file, caches the latest valid contents, and answers chat commands from memory.
+Cron Job writes `praetoris_resets.json` in the BepInEx config folder when a tracked reset command executes. serverSideTweaks reads that local file, caches the latest valid contents, and answers chat commands from memory.
 
 Supported commands:
 

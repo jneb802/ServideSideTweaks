@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ServideSideTweaks.Infrastructure;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Infrastructure;
+using ServerSideTweaks.Infrastructure.Routing;
 
-namespace ServideSideTweaks.Features.Pickables
+namespace ServerSideTweaks.Features.Pickables
 {
     internal static class PickableOwnershipHandoff
     {
@@ -64,7 +64,7 @@ namespace ServideSideTweaks.Features.Pickables
             }
             catch (Exception ex)
             {
-                ServideSideTweaksPlugin.ModLogger.LogWarning($"Failed to consume pickable ownership handoff: {ex}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to consume pickable ownership handoff: {ex}");
                 return false;
             }
         }
@@ -145,7 +145,7 @@ namespace ServideSideTweaks.Features.Pickables
         {
             if (ModConfig.DebugPickableOwnershipHandoff.Value)
             {
-                ServideSideTweaksPlugin.ModLogger.LogInfo(message);
+                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
             }
         }
 

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Infrastructure.Routing;
 using UnityEngine;
 
-namespace ServideSideTweaks.Features.Chat
+namespace ServerSideTweaks.Features.Chat
 {
     internal static class ResetChatCommands
     {
@@ -55,7 +55,7 @@ namespace ServideSideTweaks.Features.Chat
             }
             catch (Exception ex)
             {
-                ServideSideTweaksPlugin.ModLogger.LogWarning($"Failed to handle reset chat command: {ex}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to handle reset chat command: {ex}");
                 return false;
             }
         }
@@ -63,17 +63,13 @@ namespace ServideSideTweaks.Features.Chat
         private static bool IsResetCommand(string text)
         {
             string trimmed = text.TrimStart();
-            return trimmed.Equals("!resets", StringComparison.OrdinalIgnoreCase)
-                || (trimmed.Length > "!resets".Length
-                    && trimmed.StartsWith("!resets", StringComparison.OrdinalIgnoreCase)
-                    && char.IsWhiteSpace(trimmed["!resets".Length]));
+            return TryGetResetArgument(trimmed, out _);
         }
 
         private static IEnumerable<string> BuildResponse(string text)
         {
-            string argument = text.Trim().Length > "!resets".Length
-                ? text.Trim().Substring("!resets".Length).Trim()
-                : "";
+            string trimmed = text.Trim();
+            TryGetResetArgument(trimmed, out string argument);
 
             ResetDataFile.ResetDataSnapshot? snapshot = ResetDataFile.GetSnapshot(out string? lastError);
             if (snapshot == null)
@@ -173,6 +169,35 @@ namespace ServideSideTweaks.Features.Chat
         private static IEnumerable<string> Lines(string line)
         {
             return Prefix(new[] { line });
+        }
+
+        private static bool TryGetResetArgument(string trimmed, out string argument)
+        {
+            if (TryGetResetArgument(trimmed, "!resets", out argument))
+            {
+                return true;
+            }
+
+            return TryGetResetArgument(trimmed, "!reset", out argument);
+        }
+
+        private static bool TryGetResetArgument(string trimmed, string command, out string argument)
+        {
+            argument = "";
+            if (trimmed.Equals(command, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (trimmed.Length <= command.Length ||
+                !trimmed.StartsWith(command, StringComparison.OrdinalIgnoreCase) ||
+                !char.IsWhiteSpace(trimmed[command.Length]))
+            {
+                return false;
+            }
+
+            argument = trimmed.Substring(command.Length).Trim();
+            return true;
         }
 
         private static IEnumerable<string> Prefix(IEnumerable<string> lines)

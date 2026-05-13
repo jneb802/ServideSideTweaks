@@ -4,7 +4,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 
-namespace ServideSideTweaks
+namespace ServerSideTweaks
 {
     internal sealed class ConfigWatcher : IDisposable
     {

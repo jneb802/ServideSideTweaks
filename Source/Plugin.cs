@@ -2,20 +2,21 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using ServideSideTweaks.Features.Chat;
-using ServideSideTweaks.Features.Doors;
-using ServideSideTweaks.Features.Pickables;
-using ServideSideTweaks.Features.Trees;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Features.Chat;
+using ServerSideTweaks.Features.Doors;
+using ServerSideTweaks.Features.Mining;
+using ServerSideTweaks.Features.Pickables;
+using ServerSideTweaks.Features.Trees;
+using ServerSideTweaks.Infrastructure.Routing;
 
-namespace ServideSideTweaks
+namespace ServerSideTweaks
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
-    public class ServideSideTweaksPlugin : BaseUnityPlugin
+    public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
-        private const string ModName = "Servide Side Tweaks";
+        private const string ModName = "serverSideTweaks";
         private const string ModVersion = "1.0.0";
-        private const string ModGUID = "warpalicious.ServideSideTweaks";
+        private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
         private ConfigWatcher? _configWatcher;
@@ -51,8 +52,8 @@ namespace ServideSideTweaks
         {
             RoutedRpcDispatcher.Clear();
             ResetChatCommands.RegisterRoutedRpcHandlers();
-            NormalChatToShout.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
+            MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
             TreeOwnershipHandoff.RegisterRoutedRpcHandlers();
             PickableOwnershipHandoff.RegisterRoutedRpcHandlers();
         }

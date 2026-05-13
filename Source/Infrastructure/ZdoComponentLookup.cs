@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ServideSideTweaks.Infrastructure
+namespace ServerSideTweaks.Infrastructure
 {
     internal static class ZdoComponentLookup
     {

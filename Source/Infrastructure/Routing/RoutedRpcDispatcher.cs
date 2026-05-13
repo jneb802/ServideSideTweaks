@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ServideSideTweaks.Infrastructure.Routing
+namespace ServerSideTweaks.Infrastructure.Routing
 {
     internal enum RoutedRpcAction
     {
@@ -50,7 +50,7 @@ namespace ServideSideTweaks.Infrastructure.Routing
                 }
                 catch (Exception ex)
                 {
-                    ServideSideTweaksPlugin.ModLogger.LogWarning($"Routed RPC handler failed for method hash {rpcData.m_methodHash}: {ex}");
+                    ServerSideTweaksPlugin.ModLogger.LogWarning($"Routed RPC handler failed for method hash {rpcData.m_methodHash}: {ex}");
                 }
             }
 

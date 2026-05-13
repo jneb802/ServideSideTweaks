@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ServideSideTweaks.Infrastructure.Routing;
+using ServerSideTweaks.Infrastructure.Routing;
 
-namespace ServideSideTweaks.Features.Trees
+namespace ServerSideTweaks.Features.Trees
 {
     internal static class TreeOwnershipHandoff
     {
@@ -74,7 +74,7 @@ namespace ServideSideTweaks.Features.Trees
             }
             catch (Exception ex)
             {
-                ServideSideTweaksPlugin.ModLogger.LogWarning($"Failed to schedule tree ownership handoff: {ex}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to schedule tree ownership handoff: {ex}");
             }
         }
 
@@ -196,7 +196,7 @@ namespace ServideSideTweaks.Features.Trees
         {
             if (ModConfig.DebugTreeOwnershipHandoff.Value)
             {
-                ServideSideTweaksPlugin.ModLogger.LogInfo(message);
+                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
             }
         }
 
