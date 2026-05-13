@@ -17,6 +17,10 @@ namespace ServideSideTweaks
         internal static ConfigEntry<int> PickableOwnershipReplayAttempts = null!;
         internal static ConfigEntry<float> PickableOwnershipReplayRetrySeconds = null!;
         internal static ConfigEntry<bool> DebugPickableOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableResetChatCommands = null!;
+        internal static ConfigEntry<string> ResetDataFile = null!;
+        internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
+        internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -97,6 +101,30 @@ namespace ServideSideTweaks
                 "DebugPickableOwnershipHandoff",
                 false,
                 "When true, logs pickable ownership handoff decisions.");
+
+            EnableResetChatCommands = config.Bind(
+                "ResetChatCommands",
+                "EnableResetChatCommands",
+                true,
+                "When true, players can use chat commands like !resets and !resets copper to query Praetoris reset timing.");
+
+            ResetDataFile = config.Bind(
+                "ResetChatCommands",
+                "ResetDataFile",
+                "praetoris_resets.json",
+                "Reset state JSON file written by Cron Job. Relative paths are resolved from the BepInEx config folder.");
+
+            ResetDataRefreshSeconds = config.Bind(
+                "ResetChatCommands",
+                "ResetDataRefreshSeconds",
+                5.0f,
+                "How often the server checks the reset data file for changes.");
+
+            ResetChatMaxUpcomingEntries = config.Bind(
+                "ResetChatCommands",
+                "ResetChatMaxUpcomingEntries",
+                5,
+                "Maximum upcoming reset entries shown by !resets with no argument.");
         }
     }
 }

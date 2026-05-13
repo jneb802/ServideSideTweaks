@@ -42,6 +42,7 @@ namespace ServideSideTweaks
 
         private void Update()
         {
+            ResetDataFile.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
         }
@@ -49,6 +50,7 @@ namespace ServideSideTweaks
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
+            ResetChatCommands.RegisterRoutedRpcHandlers();
             NormalChatToShout.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             TreeOwnershipHandoff.RegisterRoutedRpcHandlers();
