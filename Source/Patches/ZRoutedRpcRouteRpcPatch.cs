@@ -16,6 +16,11 @@ namespace ServideSideTweaks.Patches
                 return false;
             }
 
+            if (ResetChatCommands.TryConsume(rpcData))
+            {
+                return false;
+            }
+
             DoorOwnershipHandoff.TryApply(rpcData);
             TreeOwnershipHandoff.TrySchedule(rpcData);
             NormalChatToShout.TryConvert(rpcData);

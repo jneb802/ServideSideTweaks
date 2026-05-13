@@ -2,6 +2,7 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using ServideSideTweaks.Features.Chat;
 using ServideSideTweaks.Features.Pickables;
 using ServideSideTweaks.Features.Trees;
 
@@ -38,6 +39,7 @@ namespace ServideSideTweaks
 
         private void Update()
         {
+            ResetDataFile.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
         }
