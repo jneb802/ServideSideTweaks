@@ -9,6 +9,9 @@ Author: warpalicious
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
+- Transfers mine rock ownership to the player damaging the rock with a pickaxe before routing the hit RPC.
+- Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
+- Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
 - Experimental pickable ownership handoff that consumes vanilla pick RPCs, transfers ownership to the picker, then replays the pick after a short delay.
 
 ## Prerequisites
@@ -46,6 +49,12 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | TreeOwnership | DebugTreeOwnershipHandoff | false | Logs handoff decisions for testing. |
 | DoorOwnership | EnableDoorOwnershipHandoff | true | Server transfers door ownership to the interacting player before routing `UseDoor`. |
 | DoorOwnership | DebugDoorOwnershipHandoff | false | Logs door handoff decisions for testing. |
+| MineRockOwnership | EnableMineRockOwnershipHandoff | true | Server transfers MineRock and MineRock5 ownership to the player making verified pickaxe damage before routing the hit RPC. |
+| MineRockOwnership | DebugMineRockOwnershipHandoff | false | Logs MineRock handoff decisions for testing. |
+| HarvestOwnership | EnableHarvestOwnershipHandoff | true | Server transfers beehive and sap collector ownership to the interacting player before routing `RPC_Extract`. |
+| HarvestOwnership | DebugHarvestOwnershipHandoff | false | Logs beehive and sap collector handoff decisions for testing. |
+| FermenterOwnership | EnableFermenterOwnershipHandoff | true | Server transfers fermenter ownership to the interacting player before routing `RPC_AddItem` and `RPC_Tap`. |
+| FermenterOwnership | DebugFermenterOwnershipHandoff | false | Logs fermenter handoff decisions for testing. |
 | PickableOwnership | EnablePickableOwnershipHandoff | true | Experimental. Server consumes pick RPCs, transfers ownership, and replays the pick to the picker. |
 | PickableOwnership | PickableOwnershipReplayDelaySeconds | 0.35 | Delay before replaying the consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayAttempts | 2 | Maximum replay attempts for a consumed pick RPC. |

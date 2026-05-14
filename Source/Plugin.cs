@@ -4,6 +4,8 @@ using BepInEx.Logging;
 using HarmonyLib;
 using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
+using ServerSideTweaks.Features.Fermenters;
+using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
@@ -15,7 +17,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.0.0";
+        private const string ModVersion = "1.1.0";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -54,6 +56,8 @@ namespace ServerSideTweaks
             ResetChatCommands.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
+            HarvestOwnershipHandoff.RegisterRoutedRpcHandlers();
+            FermenterOwnershipHandoff.RegisterRoutedRpcHandlers();
             TreeOwnershipHandoff.RegisterRoutedRpcHandlers();
             PickableOwnershipHandoff.RegisterRoutedRpcHandlers();
         }

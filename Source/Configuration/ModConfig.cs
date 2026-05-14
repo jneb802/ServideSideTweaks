@@ -18,6 +18,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> DebugPickableOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableMineRockOwnershipHandoff = null!;
         internal static ConfigEntry<bool> DebugMineRockOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableHarvestOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> DebugHarvestOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableResetChatCommands = null!;
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
@@ -108,6 +112,30 @@ namespace ServerSideTweaks
                 "DebugMineRockOwnershipHandoff",
                 false,
                 "When true, logs MineRock ownership handoff decisions.");
+
+            EnableHarvestOwnershipHandoff = config.Bind(
+                "HarvestOwnership",
+                "EnableHarvestOwnershipHandoff",
+                true,
+                "When true, beehive and sap collector extract RPCs transfer ownership to the interacting player before routing.");
+
+            DebugHarvestOwnershipHandoff = config.Bind(
+                "HarvestOwnership",
+                "DebugHarvestOwnershipHandoff",
+                false,
+                "When true, logs beehive and sap collector ownership handoff decisions.");
+
+            EnableFermenterOwnershipHandoff = config.Bind(
+                "FermenterOwnership",
+                "EnableFermenterOwnershipHandoff",
+                true,
+                "When true, fermenter add-item and tap RPCs transfer ownership to the interacting player before routing.");
+
+            DebugFermenterOwnershipHandoff = config.Bind(
+                "FermenterOwnership",
+                "DebugFermenterOwnershipHandoff",
+                false,
+                "When true, logs fermenter ownership handoff decisions.");
 
             EnableResetChatCommands = config.Bind(
                 "ResetChatCommands",
