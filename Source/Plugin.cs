@@ -9,6 +9,7 @@ using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
+using ServerSideTweaks.Features.Vendors;
 using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks
@@ -53,6 +54,7 @@ namespace ServerSideTweaks
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
+            VendorItemsPerPlayer.ClearRuntimeCache();
             ResetChatCommands.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();

@@ -1,0 +1,353 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using BepInEx;
+using HarmonyLib;
+using UnityEngine;
+
+namespace ServerSideTweaks.Features.Vendors
+{
+    internal static class VendorItemsPerPlayer
+    {
+        private static readonly Dictionary<string, HashSet<string>> ProgressByPlayer = new(StringComparer.Ordinal);
+        private static readonly Dictionary<ZDOID, BossProgress> BossProgressByZdo = new();
+        private static HashSet<string>? _restrictedGlobalKeys;
+        private static string? _restrictedGlobalKeysConfig;
+        private static bool _progressLoaded;
+
+        internal static void ClearRuntimeCache()
+        {
+            ProgressByPlayer.Clear();
+            BossProgressByZdo.Clear();
+            _restrictedGlobalKeys = null;
+            _restrictedGlobalKeysConfig = null;
+            _progressLoaded = false;
+        }
+
+        internal static bool TrySendFilteredGlobalKeys(ZoneSystem zoneSystem, long peer)
+        {
+            if (!IsEnabled())
+            {
+                return false;
+            }
+
+            try
+            {
+                EnsureProgressLoaded();
+
+                if (peer == ZRoutedRpc.Everybody)
+                {
+                    foreach (ZNetPeer connectedPeer in ZNet.instance.GetConnectedPeers())
+                    {
+                        if (connectedPeer != null && connectedPeer.IsReady())
+                        {
+                            SendGlobalKeys(zoneSystem, connectedPeer);
+                        }
+                    }
+
+                    return true;
+                }
+
+                ZNetPeer targetPeer = ZNet.instance.GetPeer(peer);
+                if (targetPeer != null && targetPeer.IsReady())
+                {
+                    SendGlobalKeys(zoneSystem, targetPeer);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to send per-player vendor global keys: {ex}");
+                return true;
+            }
+        }
+
+        internal static void TrackBossDamage(Character character, HitData hit)
+        {
+            if (!IsEnabled() || !IsTrackedBoss(character))
+            {
+                return;
+            }
+
+            try
+            {
+                Character attacker = hit.GetAttacker();
+                if (attacker is not Player player || player.GetPlayerID() == 0L || hit.GetTotalDamage() <= 0.0f)
+                {
+                    return;
+                }
+
+                ZDOID bossId = character.GetZDOID();
+                if (bossId.IsNone())
+                {
+                    return;
+                }
+
+                if (!BossProgressByZdo.TryGetValue(bossId, out BossProgress progress))
+                {
+                    progress = new BossProgress();
+                    BossProgressByZdo[bossId] = progress;
+                }
+
+                progress.PlayerIds.Add(player.GetPlayerID());
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to track boss damage for vendor progress: {ex}");
+            }
+        }
+
+        internal static void TrackBossDeath(Character character)
+        {
+            if (!IsEnabled() || !IsTrackedBoss(character))
+            {
+                return;
+            }
+
+            try
+            {
+                EnsureProgressLoaded();
+
+                ZDOID bossId = character.GetZDOID();
+                string defeatKey = GetKeyName(character.m_defeatSetGlobalKey);
+                HashSet<long> playerIds = new();
+
+                if (!bossId.IsNone() && BossProgressByZdo.TryGetValue(bossId, out BossProgress progress))
+                {
+                    foreach (long playerId in progress.PlayerIds)
+                    {
+                        playerIds.Add(playerId);
+                    }
+
+                    BossProgressByZdo.Remove(bossId);
+                }
+
+                if (playerIds.Count == 0)
+                {
+                    DebugLog($"No player damage records found for boss key {defeatKey}.");
+                    return;
+                }
+
+                bool changed = false;
+                foreach (long playerId in playerIds)
+                {
+                    string playerKey = playerId.ToString();
+                    HashSet<string> playerProgress = GetProgress(playerKey);
+                    if (playerProgress.Add(defeatKey))
+                    {
+                        changed = true;
+                        DebugLog($"Recorded {defeatKey} for player {playerKey}.");
+                    }
+                }
+
+                if (!changed)
+                {
+                    return;
+                }
+
+                SaveProgress();
+                SendGlobalKeysToConnectedPeers(ZoneSystem.instance);
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to record boss death for vendor progress: {ex}");
+            }
+        }
+
+        private static bool IsEnabled()
+        {
+            return ModConfig.EnableVendorItemsPerPlayer.Value == true &&
+                ZNet.instance != null &&
+                ZNet.instance.IsServer() &&
+                ZRoutedRpc.instance != null;
+        }
+
+        private static bool IsTrackedBoss(Character character)
+        {
+            if (character == null || !character.IsBoss() || string.IsNullOrWhiteSpace(character.m_defeatSetGlobalKey))
+            {
+                return false;
+            }
+
+            return GetRestrictedGlobalKeys().Contains(GetKeyName(character.m_defeatSetGlobalKey));
+        }
+
+        private static void SendGlobalKeysToConnectedPeers(ZoneSystem zoneSystem)
+        {
+            if (zoneSystem == null)
+            {
+                return;
+            }
+
+            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
+            {
+                if (peer != null && peer.IsReady())
+                {
+                    SendGlobalKeys(zoneSystem, peer);
+                }
+            }
+        }
+
+        private static void SendGlobalKeys(ZoneSystem zoneSystem, ZNetPeer peer)
+        {
+            List<string> keys = zoneSystem.GetGlobalKeys();
+            HashSet<string> progress = GetProgress(peer.m_uid.ToString());
+            HashSet<string> restrictedKeys = GetRestrictedGlobalKeys();
+            List<string> filteredKeys = new();
+
+            foreach (string key in keys)
+            {
+                string keyName = GetKeyName(key);
+                if (!restrictedKeys.Contains(keyName) || progress.Contains(keyName))
+                {
+                    filteredKeys.Add(key);
+                }
+            }
+
+            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "GlobalKeys", filteredKeys);
+            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to player {peer.m_uid}.");
+        }
+
+        private static HashSet<string> GetRestrictedGlobalKeys()
+        {
+            string configured = ModConfig.VendorProgressGlobalKeys.Value;
+            if (_restrictedGlobalKeys != null && string.Equals(_restrictedGlobalKeysConfig, configured, StringComparison.Ordinal))
+            {
+                return _restrictedGlobalKeys;
+            }
+
+            _restrictedGlobalKeysConfig = configured;
+            _restrictedGlobalKeys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string key in configured.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string keyName = GetKeyName(key);
+                if (!string.IsNullOrWhiteSpace(keyName))
+                {
+                    _restrictedGlobalKeys.Add(keyName);
+                }
+            }
+
+            return _restrictedGlobalKeys;
+        }
+
+        private static string GetKeyName(string key)
+        {
+            return key.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant() ?? "";
+        }
+
+        private static HashSet<string> GetProgress(string playerKey)
+        {
+            if (!ProgressByPlayer.TryGetValue(playerKey, out HashSet<string> progress))
+            {
+                progress = new HashSet<string>(StringComparer.Ordinal);
+                ProgressByPlayer[playerKey] = progress;
+            }
+
+            return progress;
+        }
+
+        private static void EnsureProgressLoaded()
+        {
+            if (_progressLoaded)
+            {
+                return;
+            }
+
+            _progressLoaded = true;
+            ProgressByPlayer.Clear();
+            string path = GetProgressFilePath();
+
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            foreach (string line in File.ReadAllLines(path))
+            {
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string[] parts = line.Split(new[] { '\t' }, 2);
+                if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+                {
+                    continue;
+                }
+
+                string keyName = GetKeyName(parts[1]);
+                if (GetRestrictedGlobalKeys().Contains(keyName))
+                {
+                    GetProgress(parts[0].Trim()).Add(keyName);
+                }
+            }
+        }
+
+        private static void SaveProgress()
+        {
+            string path = GetProgressFilePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Paths.ConfigPath);
+
+            List<string> lines = new();
+            foreach (KeyValuePair<string, HashSet<string>> playerEntry in ProgressByPlayer.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+            {
+                foreach (string key in playerEntry.Value.OrderBy(key => key, StringComparer.Ordinal))
+                {
+                    lines.Add($"{playerEntry.Key}\t{key}");
+                }
+            }
+
+            File.WriteAllLines(path, lines);
+        }
+
+        private static string GetProgressFilePath()
+        {
+            string configured = ModConfig.VendorProgressFile.Value.Trim();
+            return Path.IsPathRooted(configured)
+                ? configured
+                : Path.Combine(Paths.ConfigPath, configured);
+        }
+
+        private static void DebugLog(string message)
+        {
+            if (ModConfig.DebugVendorItemsPerPlayer.Value)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
+            }
+        }
+
+        private sealed class BossProgress
+        {
+            internal HashSet<long> PlayerIds { get; } = new();
+        }
+    }
+
+    [HarmonyPatch(typeof(ZoneSystem), "SendGlobalKeys")]
+    internal static class ZoneSystemSendGlobalKeysPatch
+    {
+        private static bool Prefix(ZoneSystem __instance, long peer)
+        {
+            return !VendorItemsPerPlayer.TrySendFilteredGlobalKeys(__instance, peer);
+        }
+    }
+
+    [HarmonyPatch(typeof(Character), "RPC_Damage")]
+    internal static class CharacterRpcDamageVendorProgressPatch
+    {
+        private static void Postfix(Character __instance, HitData hit)
+        {
+            VendorItemsPerPlayer.TrackBossDamage(__instance, hit);
+        }
+    }
+
+    [HarmonyPatch(typeof(Character), "OnDeath")]
+    internal static class CharacterOnDeathVendorProgressPatch
+    {
+        private static void Prefix(Character __instance)
+        {
+            VendorItemsPerPlayer.TrackBossDeath(__instance);
+        }
+    }
+}
