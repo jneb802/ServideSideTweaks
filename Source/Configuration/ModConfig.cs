@@ -26,6 +26,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
+        internal static ConfigEntry<bool> EnableBossSummonMessageRange = null!;
+        internal static ConfigEntry<float> BossSummonMessageRange = null!;
+        internal static ConfigEntry<float> BossSummonMessagePendingSeconds = null!;
+        internal static ConfigEntry<bool> DebugBossSummonMessageRange = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -160,6 +164,30 @@ namespace ServerSideTweaks
                 "ResetChatMaxUpcomingEntries",
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
+
+            EnableBossSummonMessageRange = config.Bind(
+                "BossSummonMessages",
+                "EnableBossSummonMessageRange",
+                true,
+                "When true, boss summon center-screen messages are sent only to players near the summoning player instead of every connected player.");
+
+            BossSummonMessageRange = config.Bind(
+                "BossSummonMessages",
+                "BossSummonMessageRange",
+                120.0f,
+                "Maximum distance from the summoning player's position for a player to receive the boss summon message.");
+
+            BossSummonMessagePendingSeconds = config.Bind(
+                "BossSummonMessages",
+                "BossSummonMessagePendingSeconds",
+                45.0f,
+                "How long a boss summon attempt can wait for the matching boss spawn message before it is ignored.");
+
+            DebugBossSummonMessageRange = config.Bind(
+                "BossSummonMessages",
+                "DebugBossSummonMessageRange",
+                false,
+                "When true, logs boss summon message range decisions.");
         }
     }
 }

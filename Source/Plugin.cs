@@ -2,6 +2,7 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using ServerSideTweaks.Features.Bosses;
 using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
@@ -54,6 +55,7 @@ namespace ServerSideTweaks
         {
             RoutedRpcDispatcher.Clear();
             ResetChatCommands.RegisterRoutedRpcHandlers();
+            BossSummonMessages.Clear();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
             HarvestOwnershipHandoff.RegisterRoutedRpcHandlers();
