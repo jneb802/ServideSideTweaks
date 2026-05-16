@@ -33,6 +33,11 @@ namespace ServerSideTweaks.Features.BossStones
                 return false;
             }
 
+            if (rpcData.m_methodHash == SetVisualItemHash && ShouldBlockSetVisualItem(rpcData, "local"))
+            {
+                return false;
+            }
+
             LogObservedRpc(rpcData, "local");
             return true;
         }
@@ -44,6 +49,11 @@ namespace ServerSideTweaks.Features.BossStones
 
         private static RoutedRpcAction HandleObservedRpc(ZRoutedRpc.RoutedRPCData rpcData)
         {
+            if (rpcData.m_methodHash == SetVisualItemHash && ShouldBlockSetVisualItem(rpcData, "route"))
+            {
+                return RoutedRpcAction.Consume;
+            }
+
             LogObservedRpc(rpcData, "route");
             return RoutedRpcAction.Continue;
         }
@@ -94,6 +104,67 @@ namespace ServerSideTweaks.Features.BossStones
             }
         }
 
+        private static bool ShouldBlockSetVisualItem(ZRoutedRpc.RoutedRPCData rpcData, string path)
+        {
+            if (ModConfig.EnableBossStoneTrophyPlacementBlock.Value != true || ZNet.instance == null || !ZNet.instance.IsServer())
+            {
+                return false;
+            }
+
+            if (rpcData.m_targetZDO.IsNone())
+            {
+                return false;
+            }
+
+            try
+            {
+                ZDOMan zdoMan = ZDOMan.instance;
+                if (zdoMan == null)
+                {
+                    return false;
+                }
+
+                ZDO? target = zdoMan.GetZDO(rpcData.m_targetZDO);
+                if (target == null)
+                {
+                    return false;
+                }
+
+                TargetInfo info = DescribeTarget(target);
+                SetVisualItemParameters parameters = ReadSetVisualItemParameterValues(rpcData.m_parameters);
+                if (!info.IsBossStoneStand || string.IsNullOrEmpty(parameters.ItemName))
+                {
+                    return false;
+                }
+
+                ClearBossStoneAttachment(zdoMan, target, rpcData.m_senderPeerID);
+                DebugLog($"BossStoneTrophyPlacement {path}: blocked boss-stone SetVisualItem. params={parameters} {FormatRpc(rpcData, info)}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to block boss-stone visual item placement: {ex}");
+                return false;
+            }
+        }
+
+        private static void ClearBossStoneAttachment(ZDOMan zdoMan, ZDO target, long senderPeerId)
+        {
+            target.Set(ZDOVars.s_item, "");
+            target.Set(ZDOVars.s_variant, 0, false);
+            target.Set(ZDOVars.s_quality, 1, false);
+            target.Set(ZDOVars.s_type, 0, false);
+            target.SetOwner(0L);
+            target.DataRevision = Math.Max(target.DataRevision + 1000U, 1000U);
+
+            zdoMan.ForceSendZDO(senderPeerId, target.m_uid);
+            zdoMan.ForceSendZDO(target.m_uid);
+            if (ZRoutedRpc.instance != null)
+            {
+                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, target.m_uid, "SetVisualItem", "", 0, 0, 0);
+            }
+        }
+
         private static bool IsBossStoneItemStand(ZDO zdo)
         {
             return DescribeTarget(zdo).IsBossStoneStand;
@@ -122,7 +193,7 @@ namespace ServerSideTweaks.Features.BossStones
                 }
 
                 TargetInfo info = DescribeTarget(target);
-                string setVisualItem = rpcData.m_methodHash == SetVisualItemHash ? $" params={ReadSetVisualItemParameters(rpcData.m_parameters)}" : "";
+                string setVisualItem = rpcData.m_methodHash == SetVisualItemHash ? $" params={ReadSetVisualItemParameterValues(rpcData.m_parameters)}" : "";
                 if (info.HasItemStand || info.IsBossStoneStand || rpcData.m_methodHash == RequestOwnHash || setVisualItem.IndexOf("Trophy", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     DebugLog($"BossStoneTrophyPlacement {path}: {GetMethodName(rpcData.m_methodHash)} observed.{setVisualItem} {FormatRpc(rpcData, info)}");
@@ -213,7 +284,7 @@ namespace ServerSideTweaks.Features.BossStones
             return methodHash.ToString();
         }
 
-        private static string ReadSetVisualItemParameters(ZPackage parameters)
+        private static SetVisualItemParameters ReadSetVisualItemParameterValues(ZPackage parameters)
         {
             int pos = parameters.GetPos();
             try
@@ -223,11 +294,11 @@ namespace ServerSideTweaks.Features.BossStones
                 int variant = parameters.ReadInt();
                 int quality = parameters.ReadInt();
                 int orientation = parameters.ReadInt();
-                return $"item={itemName} variant={variant} quality={quality} orientation={orientation}";
+                return new SetVisualItemParameters(itemName, variant, quality, orientation);
             }
             catch (Exception ex)
             {
-                return $"<failed to read: {ex.GetType().Name}>";
+                return new SetVisualItemParameters($"<failed to read: {ex.GetType().Name}>", 0, 0, 0);
             }
             finally
             {
@@ -316,6 +387,27 @@ namespace ServerSideTweaks.Features.BossStones
             internal bool CanBeRemoved { get; }
             internal string StandName { get; }
             internal bool IsBossStoneStand => HasBossStone || HasGuardianPower && !CanBeRemoved;
+        }
+
+        private sealed class SetVisualItemParameters
+        {
+            internal SetVisualItemParameters(string itemName, int variant, int quality, int orientation)
+            {
+                ItemName = itemName;
+                Variant = variant;
+                Quality = quality;
+                Orientation = orientation;
+            }
+
+            internal string ItemName { get; }
+            private int Variant { get; }
+            private int Quality { get; }
+            private int Orientation { get; }
+
+            public override string ToString()
+            {
+                return $"item={ItemName} variant={Variant} quality={Quality} orientation={Orientation}";
+            }
         }
     }
 }
