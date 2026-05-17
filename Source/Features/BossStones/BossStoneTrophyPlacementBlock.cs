@@ -14,7 +14,9 @@ namespace ServerSideTweaks.Features.BossStones
             "BossStone_TheElder".GetStableHashCode(),
             "BossStone_Bonemass".GetStableHashCode(),
             "BossStone_DragonQueen".GetStableHashCode(),
-            "BossStone_Yagluth".GetStableHashCode()
+            "BossStone_Yagluth".GetStableHashCode(),
+            "BossStone_TheQueen".GetStableHashCode(),
+            "BossStone_Fader".GetStableHashCode()
         };
 
         private static readonly HashSet<string> BossTrophyNames = new(StringComparer.Ordinal)
@@ -23,7 +25,9 @@ namespace ServerSideTweaks.Features.BossStones
             "TrophyTheElder",
             "TrophyBonemass",
             "TrophyDragonQueen",
-            "TrophyGoblinKing"
+            "TrophyGoblinKing",
+            "TrophySeekerQueen",
+            "TrophyFader"
         };
 
         internal static bool AllowZdoStringSet(ZDOID zdoId, int hash, string value)
