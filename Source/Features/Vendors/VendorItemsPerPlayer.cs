@@ -5,7 +5,6 @@ using System.Linq;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
-using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Features.Vendors
 {
@@ -18,23 +17,12 @@ namespace ServerSideTweaks.Features.Vendors
         private static string? _restrictedGlobalKeysConfig;
         private static bool _progressLoaded;
 
-        internal static void RegisterRoutedRpcHandlers()
-        {
-            RoutedRpcDispatcher.Register("SetGlobalKey", HandleSetGlobalKey);
-        }
-
         internal static void ClearRuntimeCache()
         {
             ProgressByPlayer.Clear();
             _restrictedGlobalKeys = null;
             _restrictedGlobalKeysConfig = null;
             _progressLoaded = false;
-        }
-
-        private static RoutedRpcAction HandleSetGlobalKey(ZRoutedRpc.RoutedRPCData rpcData)
-        {
-            TrackBossDefeatGlobalKey(rpcData);
-            return RoutedRpcAction.Continue;
         }
 
         internal static bool TrySendFilteredGlobalKeys(ZoneSystem zoneSystem, long peer)
@@ -374,6 +362,20 @@ namespace ServerSideTweaks.Features.Vendors
         private static bool Prefix(ZoneSystem __instance, long peer)
         {
             return !VendorItemsPerPlayer.TrySendFilteredGlobalKeys(__instance, peer);
+        }
+    }
+
+    [HarmonyPatch(typeof(ZRoutedRpc), "HandleRoutedRPC")]
+    internal static class ZRoutedRpcHandleRoutedRpcVendorProgressPatch
+    {
+        private static readonly int SetGlobalKeyHash = "SetGlobalKey".GetStableHashCode();
+
+        private static void Prefix(ZRoutedRpc.RoutedRPCData data)
+        {
+            if (data.m_methodHash == SetGlobalKeyHash)
+            {
+                VendorItemsPerPlayer.TrackBossDefeatGlobalKey(data);
+            }
         }
     }
 }
