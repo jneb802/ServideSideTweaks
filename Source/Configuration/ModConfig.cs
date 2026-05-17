@@ -29,7 +29,6 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
-        internal static ConfigEntry<bool> DebugVendorItemsPerPlayer = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
@@ -183,12 +182,6 @@ namespace ServerSideTweaks
                 "VendorProgressFile",
                 "warpalicious.serverSideTweaks.vendorProgress.tsv",
                 "Per-player vendor progress file. Relative paths are resolved from the BepInEx config folder.");
-
-            DebugVendorItemsPerPlayer = config.Bind(
-                "VendorItems",
-                "DebugVendorItemsPerPlayer",
-                false,
-                "When true, logs per-player vendor global-key filtering and boss progress decisions.");
 
             EnableBossStoneTrophyPlacementBlock = config.Bind(
                 "BossStoneTrophies",

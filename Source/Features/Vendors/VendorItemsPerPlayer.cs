@@ -327,10 +327,7 @@ namespace ServerSideTweaks.Features.Vendors
 
         private static void DebugLog(string message)
         {
-            if (ModConfig.DebugVendorItemsPerPlayer.Value)
-            {
-                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
-            }
+            ServerSideTweaksPlugin.ModLogger.LogInfo(message);
         }
 
         private static string FormatVector(Vector3 vector)
