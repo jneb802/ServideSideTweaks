@@ -64,7 +64,7 @@ namespace ServerSideTweaks.Features.Vendors
             }
         }
 
-        internal static void TrackBossDamage(Character character, HitData hit)
+        internal static void TrackBossDamage(Character character, long sender, HitData hit)
         {
             if (!IsEnabled() || !IsTrackedBoss(character))
             {
@@ -73,8 +73,7 @@ namespace ServerSideTweaks.Features.Vendors
 
             try
             {
-                Character attacker = hit.GetAttacker();
-                if (attacker is not Player player || player.GetPlayerID() == 0L || hit.GetTotalDamage() <= 0.0f)
+                if (hit.GetTotalDamage() <= 0.0f || !TryGetDamagePlayerId(sender, hit, out long playerId))
                 {
                     return;
                 }
@@ -91,7 +90,8 @@ namespace ServerSideTweaks.Features.Vendors
                     BossProgressByZdo[bossId] = progress;
                 }
 
-                progress.PlayerIds.Add(player.GetPlayerID());
+                progress.PlayerIds.Add(playerId);
+                DebugLog($"Tracked boss damage for {GetKeyName(character.m_defeatSetGlobalKey)} from player {playerId}.");
             }
             catch (Exception ex)
             {
@@ -164,6 +164,24 @@ namespace ServerSideTweaks.Features.Vendors
                 ZRoutedRpc.instance != null;
         }
 
+        private static bool TryGetDamagePlayerId(long sender, HitData hit, out long playerId)
+        {
+            playerId = GetPlayerId(hit.m_attacker);
+            if (playerId != 0L)
+            {
+                return true;
+            }
+
+            ZNetPeer peer = ZNet.instance.GetPeer(sender);
+            if (peer == null)
+            {
+                return false;
+            }
+
+            playerId = GetPlayerId(peer.m_characterID);
+            return playerId != 0L;
+        }
+
         private static bool IsTrackedBoss(Character character)
         {
             if (character == null || !character.IsBoss() || string.IsNullOrWhiteSpace(character.m_defeatSetGlobalKey))
@@ -213,21 +231,24 @@ namespace ServerSideTweaks.Features.Vendors
 
         private static bool TryGetPeerPlayerId(ZNetPeer peer, out long playerId)
         {
-            playerId = 0L;
+            playerId = GetPlayerId(peer.m_characterID);
+            return playerId != 0L;
+        }
 
-            if (peer.m_characterID.IsNone() || ZDOMan.instance == null)
+        private static long GetPlayerId(ZDOID characterId)
+        {
+            if (characterId.IsNone() || ZDOMan.instance == null)
             {
-                return false;
+                return 0L;
             }
 
-            ZDO? playerZdo = ZDOMan.instance.GetZDO(peer.m_characterID);
+            ZDO? playerZdo = ZDOMan.instance.GetZDO(characterId);
             if (playerZdo == null)
             {
-                return false;
+                return 0L;
             }
 
-            playerId = playerZdo.GetLong(ZDOVars.s_playerID);
-            return playerId != 0L;
+            return playerZdo.GetLong(ZDOVars.s_playerID);
         }
 
         private static HashSet<string> GetRestrictedGlobalKeys()
@@ -356,9 +377,9 @@ namespace ServerSideTweaks.Features.Vendors
     [HarmonyPatch(typeof(Character), "RPC_Damage")]
     internal static class CharacterRpcDamageVendorProgressPatch
     {
-        private static void Postfix(Character __instance, HitData hit)
+        private static void Postfix(Character __instance, long sender, HitData hit)
         {
-            VendorItemsPerPlayer.TrackBossDamage(__instance, hit);
+            VendorItemsPerPlayer.TrackBossDamage(__instance, sender, hit);
         }
     }
 
