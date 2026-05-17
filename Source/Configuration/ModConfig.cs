@@ -30,6 +30,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> DebugVendorItemsPerPlayer = null!;
+        internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -188,6 +189,12 @@ namespace ServerSideTweaks
                 "DebugVendorItemsPerPlayer",
                 false,
                 "When true, logs per-player vendor global-key filtering and boss progress decisions.");
+
+            EnableBossStoneTrophyPlacementBlock = config.Bind(
+                "BossStoneTrophies",
+                "EnableBossStoneTrophyPlacementBlock",
+                true,
+                "When true, prevents players from placing trophies on start-temple boss stones.");
         }
     }
 }
