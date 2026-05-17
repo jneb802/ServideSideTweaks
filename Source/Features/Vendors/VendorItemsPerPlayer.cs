@@ -193,7 +193,8 @@ namespace ServerSideTweaks.Features.Vendors
         private static void SendGlobalKeys(ZoneSystem zoneSystem, ZNetPeer peer)
         {
             List<string> keys = zoneSystem.GetGlobalKeys();
-            HashSet<string> progress = GetProgress(peer.m_uid.ToString());
+            bool hasPlayerId = TryGetPeerPlayerId(peer, out long playerId);
+            HashSet<string> progress = hasPlayerId ? GetProgress(playerId.ToString()) : new HashSet<string>(StringComparer.Ordinal);
             HashSet<string> restrictedKeys = GetRestrictedGlobalKeys();
             List<string> filteredKeys = new();
 
@@ -207,7 +208,26 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "GlobalKeys", filteredKeys);
-            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to player {peer.m_uid}.");
+            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to peer {peer.m_uid}; playerID={(hasPlayerId ? playerId.ToString() : "unknown")}.");
+        }
+
+        private static bool TryGetPeerPlayerId(ZNetPeer peer, out long playerId)
+        {
+            playerId = 0L;
+
+            if (peer.m_characterID.IsNone() || ZDOMan.instance == null)
+            {
+                return false;
+            }
+
+            ZDO? playerZdo = ZDOMan.instance.GetZDO(peer.m_characterID);
+            if (playerZdo == null)
+            {
+                return false;
+            }
+
+            playerId = playerZdo.GetLong(ZDOVars.s_playerID);
+            return playerId != 0L;
         }
 
         private static HashSet<string> GetRestrictedGlobalKeys()
