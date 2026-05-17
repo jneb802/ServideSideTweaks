@@ -44,7 +44,6 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | ResetChatCommands | ResetDataRefreshSeconds | 5 | How often the server checks the reset data file for changes. |
 | ResetChatCommands | ResetChatMaxUpcomingEntries | 5 | Maximum upcoming reset entries shown by `!resets`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
-| BossStoneTrophies | DebugBossStoneTrophyPlacementBlock | false | Logs blocked boss-stone owner changes and trophy ZDO writes. |
 | TreeOwnership | EnableTreeBaseOwnershipHandoff | true | Standing tree damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | EnableTreeLogOwnershipHandoff | true | Fallen log damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | TreeOwnershipHandoffDelaySeconds | 0.25 | Delay before changing owner so the current damage RPC can finish first. |

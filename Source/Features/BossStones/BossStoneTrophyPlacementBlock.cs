@@ -64,7 +64,7 @@ namespace ServerSideTweaks.Features.BossStones
                 ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to restore boss-stone ownership after blocking trophy placement: {ex}");
             }
 
-            DebugLog($"Blocked boss-stone trophy ZDO item write. zdo={zdoId} item={value}");
+            ServerSideTweaksPlugin.ModLogger.LogInfo($"Blocked boss-stone trophy ZDO item write. zdo={zdoId} item={value}");
             return false;
         }
 
@@ -75,7 +75,7 @@ namespace ServerSideTweaks.Features.BossStones
                 return;
             }
 
-            DebugLog($"Kept start-temple boss stone server-owned. zdo={zdo.m_uid} requestedOwner={owner} pos={FormatVector(zdo.GetPosition())}");
+            ServerSideTweaksPlugin.ModLogger.LogInfo($"Kept start-temple boss stone server-owned. zdo={zdo.m_uid} requestedOwner={owner} pos={FormatVector(zdo.GetPosition())}");
             owner = ZDOMan.instance.m_sessionID;
         }
 
@@ -160,14 +160,6 @@ namespace ServerSideTweaks.Features.BossStones
         private static string FormatVector(Vector3 vector)
         {
             return $"{vector.x:0.0},{vector.y:0.0},{vector.z:0.0}";
-        }
-
-        private static void DebugLog(string message)
-        {
-            if (ModConfig.DebugBossStoneTrophyPlacementBlock.Value)
-            {
-                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
-            }
         }
     }
 }

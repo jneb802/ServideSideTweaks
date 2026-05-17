@@ -27,7 +27,6 @@ namespace ServerSideTweaks
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
-        internal static ConfigEntry<bool> DebugBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -168,12 +167,6 @@ namespace ServerSideTweaks
                 "EnableBossStoneTrophyPlacementBlock",
                 true,
                 "When true, prevents players from placing trophies on start-temple boss stones.");
-
-            DebugBossStoneTrophyPlacementBlock = config.Bind(
-                "BossStoneTrophies",
-                "DebugBossStoneTrophyPlacementBlock",
-                false,
-                "When true, logs blocked boss-stone owner changes and trophy ZDO writes.");
         }
     }
 }
