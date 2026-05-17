@@ -94,7 +94,7 @@ namespace ServerSideTweaks.Features.Vendors
 
             if (playerIds.Count == 0)
             {
-                DebugLog($"No player damage records found for boss key {defeatKey}.");
+                DebugLog($"No nearby players found for boss key {defeatKey}.");
                 return;
             }
 
@@ -116,7 +116,6 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             SaveProgress();
-            SendGlobalKeysToConnectedPeers(ZoneSystem.instance);
         }
 
         private static bool IsEnabled()
@@ -159,22 +158,6 @@ namespace ServerSideTweaks.Features.Vendors
 
             DebugLog($"Crediting {defeatKey} to {playerIds.Count} player(s) within {radius:0.#}m of sender player {senderPlayerId} at {FormatVector(origin)}.");
             return playerIds;
-        }
-
-        private static void SendGlobalKeysToConnectedPeers(ZoneSystem zoneSystem)
-        {
-            if (zoneSystem == null)
-            {
-                return;
-            }
-
-            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
-            {
-                if (peer != null && peer.IsReady())
-                {
-                    SendGlobalKeys(zoneSystem, peer);
-                }
-            }
         }
 
         private static void SendGlobalKeys(ZoneSystem zoneSystem, ZNetPeer peer)

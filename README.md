@@ -7,7 +7,7 @@ Author: warpalicious
 ## Features
 
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
-- Gates configured boss-unlocked vendor items by per-player boss progress.
+- Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
