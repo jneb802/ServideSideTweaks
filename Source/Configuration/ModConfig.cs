@@ -26,6 +26,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
+        internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -160,6 +161,12 @@ namespace ServerSideTweaks
                 "ResetChatMaxUpcomingEntries",
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
+
+            EnableBossStoneTrophyPlacementBlock = config.Bind(
+                "BossStoneTrophies",
+                "EnableBossStoneTrophyPlacementBlock",
+                true,
+                "When true, prevents players from placing trophies on start-temple boss stones.");
         }
     }
 }
