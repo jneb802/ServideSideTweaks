@@ -136,7 +136,14 @@ namespace ServerSideTweaks.Features.Vendors
                     return;
                 }
 
-                RecordBossProgress(defeatKey, GetTrackedPlayers(defeatKey));
+                HashSet<long> playerIds = GetTrackedPlayers(defeatKey);
+                if (playerIds.Count == 0 && TryGetSenderPlayerId(rpcData.m_senderPeerID, out long senderPlayerId))
+                {
+                    playerIds.Add(senderPlayerId);
+                    DebugLog($"Crediting {defeatKey} to SetGlobalKey sender player {senderPlayerId}.");
+                }
+
+                RecordBossProgress(defeatKey, playerIds);
             }
             catch (Exception ex)
             {
@@ -336,6 +343,20 @@ namespace ServerSideTweaks.Features.Vendors
 
         private static bool TryGetPeerPlayerId(ZNetPeer peer, out long playerId)
         {
+            playerId = GetPlayerId(peer.m_characterID);
+            return playerId != 0L;
+        }
+
+        private static bool TryGetSenderPlayerId(long sender, out long playerId)
+        {
+            playerId = 0L;
+
+            ZNetPeer peer = ZNet.instance.GetPeer(sender);
+            if (peer == null)
+            {
+                return false;
+            }
+
             playerId = GetPlayerId(peer.m_characterID);
             return playerId != 0L;
         }
