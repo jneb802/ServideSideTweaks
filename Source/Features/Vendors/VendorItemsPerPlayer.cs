@@ -5,6 +5,7 @@ using System.Linq;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
+using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Features.Vendors
 {
@@ -16,6 +17,12 @@ namespace ServerSideTweaks.Features.Vendors
         private static string? _restrictedGlobalKeysConfig;
         private static bool _progressLoaded;
 
+        internal static void RegisterRoutedRpcHandlers()
+        {
+            RoutedRpcDispatcher.Register("RPC_Damage", HandleDamage);
+            RoutedRpcDispatcher.Register("SetGlobalKey", HandleSetGlobalKey);
+        }
+
         internal static void ClearRuntimeCache()
         {
             ProgressByPlayer.Clear();
@@ -23,6 +30,18 @@ namespace ServerSideTweaks.Features.Vendors
             _restrictedGlobalKeys = null;
             _restrictedGlobalKeysConfig = null;
             _progressLoaded = false;
+        }
+
+        private static RoutedRpcAction HandleDamage(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            TrackBossDamage(rpcData);
+            return RoutedRpcAction.Continue;
+        }
+
+        private static RoutedRpcAction HandleSetGlobalKey(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            TrackBossDefeatGlobalKey(rpcData);
+            return RoutedRpcAction.Continue;
         }
 
         internal static bool TrySendFilteredGlobalKeys(ZoneSystem zoneSystem, long peer)
@@ -64,38 +83,64 @@ namespace ServerSideTweaks.Features.Vendors
             }
         }
 
-        internal static void TrackBossDamage(Character character, long sender, HitData hit)
+        internal static void TrackBossDamage(ZRoutedRpc.RoutedRPCData rpcData)
         {
-            if (!IsEnabled() || !IsTrackedBoss(character))
+            if (!IsEnabled() || rpcData.m_targetZDO.IsNone())
             {
                 return;
             }
 
             try
             {
-                if (hit.GetTotalDamage() <= 0.0f || !TryGetDamagePlayerId(sender, hit, out long playerId))
+                ZDO? target = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(rpcData.m_targetZDO) : null;
+                Character? character = GetCharacter(target);
+                if (character == null || !IsTrackedBoss(character))
                 {
                     return;
                 }
 
-                ZDOID bossId = character.GetZDOID();
-                if (bossId.IsNone())
+                HitData hit = ReadHitData(rpcData.m_parameters);
+                if (hit.GetTotalDamage() <= 0.0f || !TryGetDamagePlayerId(rpcData.m_senderPeerID, hit, out long playerId))
                 {
                     return;
                 }
 
-                if (!BossProgressByZdo.TryGetValue(bossId, out BossProgress progress))
+                string defeatKey = GetKeyName(character.m_defeatSetGlobalKey);
+                if (!BossProgressByZdo.TryGetValue(rpcData.m_targetZDO, out BossProgress progress))
                 {
-                    progress = new BossProgress();
-                    BossProgressByZdo[bossId] = progress;
+                    progress = new BossProgress(defeatKey);
+                    BossProgressByZdo[rpcData.m_targetZDO] = progress;
                 }
 
                 progress.PlayerIds.Add(playerId);
-                DebugLog($"Tracked boss damage for {GetKeyName(character.m_defeatSetGlobalKey)} from player {playerId}.");
+                DebugLog($"Tracked boss damage for {defeatKey} from player {playerId}.");
             }
             catch (Exception ex)
             {
                 ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to track boss damage for vendor progress: {ex}");
+            }
+        }
+
+        internal static void TrackBossDefeatGlobalKey(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            if (!IsEnabled())
+            {
+                return;
+            }
+
+            try
+            {
+                string defeatKey = ReadGlobalKey(rpcData.m_parameters);
+                if (!GetRestrictedGlobalKeys().Contains(defeatKey))
+                {
+                    return;
+                }
+
+                RecordBossProgress(defeatKey, GetTrackedPlayers(defeatKey));
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to record boss global key for vendor progress: {ex}");
             }
         }
 
@@ -108,52 +153,74 @@ namespace ServerSideTweaks.Features.Vendors
 
             try
             {
-                EnsureProgressLoaded();
-
                 ZDOID bossId = character.GetZDOID();
                 string defeatKey = GetKeyName(character.m_defeatSetGlobalKey);
-                HashSet<long> playerIds = new();
-
-                if (!bossId.IsNone() && BossProgressByZdo.TryGetValue(bossId, out BossProgress progress))
-                {
-                    foreach (long playerId in progress.PlayerIds)
-                    {
-                        playerIds.Add(playerId);
-                    }
-
-                    BossProgressByZdo.Remove(bossId);
-                }
-
-                if (playerIds.Count == 0)
-                {
-                    DebugLog($"No player damage records found for boss key {defeatKey}.");
-                    return;
-                }
-
-                bool changed = false;
-                foreach (long playerId in playerIds)
-                {
-                    string playerKey = playerId.ToString();
-                    HashSet<string> playerProgress = GetProgress(playerKey);
-                    if (playerProgress.Add(defeatKey))
-                    {
-                        changed = true;
-                        DebugLog($"Recorded {defeatKey} for player {playerKey}.");
-                    }
-                }
-
-                if (!changed)
-                {
-                    return;
-                }
-
-                SaveProgress();
-                SendGlobalKeysToConnectedPeers(ZoneSystem.instance);
+                RecordBossProgress(defeatKey, GetTrackedPlayers(defeatKey, bossId));
             }
             catch (Exception ex)
             {
                 ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to record boss death for vendor progress: {ex}");
             }
+        }
+
+        private static void RecordBossProgress(string defeatKey, HashSet<long> playerIds)
+        {
+            EnsureProgressLoaded();
+
+            if (playerIds.Count == 0)
+            {
+                DebugLog($"No player damage records found for boss key {defeatKey}.");
+                return;
+            }
+
+            bool changed = false;
+            foreach (long playerId in playerIds)
+            {
+                string playerKey = playerId.ToString();
+                HashSet<string> playerProgress = GetProgress(playerKey);
+                if (playerProgress.Add(defeatKey))
+                {
+                    changed = true;
+                    DebugLog($"Recorded {defeatKey} for player {playerKey}.");
+                }
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            SaveProgress();
+            SendGlobalKeysToConnectedPeers(ZoneSystem.instance);
+        }
+
+        private static HashSet<long> GetTrackedPlayers(string defeatKey, ZDOID specificBossId = default)
+        {
+            HashSet<long> playerIds = new();
+            List<ZDOID> completedBosses = new();
+
+            foreach (KeyValuePair<ZDOID, BossProgress> entry in BossProgressByZdo)
+            {
+                if ((!specificBossId.IsNone() && entry.Key != specificBossId) ||
+                    !string.Equals(entry.Value.DefeatKey, defeatKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                foreach (long playerId in entry.Value.PlayerIds)
+                {
+                    playerIds.Add(playerId);
+                }
+
+                completedBosses.Add(entry.Key);
+            }
+
+            foreach (ZDOID bossId in completedBosses)
+            {
+                BossProgressByZdo.Remove(bossId);
+            }
+
+            return playerIds;
         }
 
         private static bool IsEnabled()
@@ -190,6 +257,44 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             return GetRestrictedGlobalKeys().Contains(GetKeyName(character.m_defeatSetGlobalKey));
+        }
+
+        private static Character? GetCharacter(ZDO? zdo)
+        {
+            if (zdo == null || ZNetScene.instance == null)
+            {
+                return null;
+            }
+
+            ZNetView? instance = ZNetScene.instance.FindInstance(zdo);
+            if (instance != null)
+            {
+                Character? character = instance.GetComponent<Character>();
+                if (character != null)
+                {
+                    return character;
+                }
+            }
+
+            GameObject? prefab = ZNetScene.instance.GetPrefab(zdo.GetPrefab());
+            return prefab != null ? prefab.GetComponent<Character>() : null;
+        }
+
+        private static HitData ReadHitData(ZPackage parameters)
+        {
+            parameters.SetPos(0);
+            HitData hit = new();
+            hit.Deserialize(ref parameters);
+            parameters.SetPos(0);
+            return hit;
+        }
+
+        private static string ReadGlobalKey(ZPackage parameters)
+        {
+            parameters.SetPos(0);
+            string key = GetKeyName(parameters.ReadString());
+            parameters.SetPos(0);
+            return key;
         }
 
         private static void SendGlobalKeysToConnectedPeers(ZoneSystem zoneSystem)
@@ -361,6 +466,12 @@ namespace ServerSideTweaks.Features.Vendors
 
         private sealed class BossProgress
         {
+            internal BossProgress(string defeatKey)
+            {
+                DefeatKey = defeatKey;
+            }
+
+            internal string DefeatKey { get; }
             internal HashSet<long> PlayerIds { get; } = new();
         }
     }
@@ -371,15 +482,6 @@ namespace ServerSideTweaks.Features.Vendors
         private static bool Prefix(ZoneSystem __instance, long peer)
         {
             return !VendorItemsPerPlayer.TrySendFilteredGlobalKeys(__instance, peer);
-        }
-    }
-
-    [HarmonyPatch(typeof(Character), "RPC_Damage")]
-    internal static class CharacterRpcDamageVendorProgressPatch
-    {
-        private static void Postfix(Character __instance, long sender, HitData hit)
-        {
-            VendorItemsPerPlayer.TrackBossDamage(__instance, sender, hit);
         }
     }
 

@@ -55,6 +55,7 @@ namespace ServerSideTweaks
         {
             RoutedRpcDispatcher.Clear();
             VendorItemsPerPlayer.ClearRuntimeCache();
+            VendorItemsPerPlayer.RegisterRoutedRpcHandlers();
             ResetChatCommands.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
