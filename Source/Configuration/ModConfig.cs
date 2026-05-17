@@ -173,7 +173,7 @@ namespace ServerSideTweaks
                 "BossStoneTrophies",
                 "DebugBossStoneTrophyPlacementBlock",
                 false,
-                "When true, logs blocked boss-stone trophy placement ownership requests.");
+                "When true, logs blocked boss-stone owner changes and trophy ZDO writes.");
         }
     }
 }

@@ -2,7 +2,6 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
@@ -54,7 +53,6 @@ namespace ServerSideTweaks
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
-            BossStoneTrophyPlacementBlock.RegisterRoutedRpcHandlers();
             ResetChatCommands.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
