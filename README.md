@@ -7,6 +7,7 @@ Author: warpalicious
 ## Features
 
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
+- Reveals placed location icons per player instead of sending every placed icon to every connected player.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
@@ -44,6 +45,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | ResetChatCommands | ResetDataFile | praetoris_resets.json | Reset state JSON file written by Cron Job. Relative paths are resolved from `BepInEx/config`. |
 | ResetChatCommands | ResetDataRefreshSeconds | 5 | How often the server checks the reset data file for changes. |
 | ResetChatCommands | ResetChatMaxUpcomingEntries | 5 | Maximum upcoming reset entries shown by `!resets`. |
+| LocationIcons | EnablePerPlayerLocationIcons | true | Reveals placed location icons per player instead of sending them to every connected player. |
+| LocationIcons | LocationIconRevealDistance | 120 | Distance from a placed location icon required for that player to discover it. |
+| LocationIcons | LocationIconDiscoveryFile | warpalicious.serverSideTweaks.locationIcons.tsv | Per-player location icon discovery file. Relative paths are resolved from `BepInEx/config`. |
+| LocationIcons | DebugPerPlayerLocationIcons | false | Logs per-player location icon discovery and filtering decisions. |
 | VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |
@@ -70,6 +75,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 ## Vendor Progress File
 
 Vendor progress is saved as a tab-separated file with `playerName` and `globalKey` columns.
+
+## Location Icon Discovery File
+
+Location icon discoveries are saved as a tab-separated file with `playerName` and `zoneX:zoneY:locationPrefabName` columns.
 
 ## Reset Chat Commands
 

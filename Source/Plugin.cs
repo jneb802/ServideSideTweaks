@@ -6,6 +6,7 @@ using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
 using ServerSideTweaks.Features.Harvest;
+using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
@@ -54,6 +55,7 @@ namespace ServerSideTweaks
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
+            PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             ResetChatCommands.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
