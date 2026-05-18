@@ -26,6 +26,8 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
+        internal static ConfigEntry<bool> EnableBossMessageRelayBlock = null!;
+        internal static ConfigEntry<bool> DebugBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
@@ -164,6 +166,18 @@ namespace ServerSideTweaks
                 "ResetChatMaxUpcomingEntries",
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
+
+            EnableBossMessageRelayBlock = config.Bind(
+                "BossMessages",
+                "EnableBossMessageRelayBlock",
+                true,
+                "When true, the server does not relay boss summon, alert, and death center-screen messages to other players.");
+
+            DebugBossMessageRelayBlock = config.Bind(
+                "BossMessages",
+                "DebugBossMessageRelayBlock",
+                false,
+                "When true, logs blocked boss center-screen message relays.");
 
             EnableVendorItemsPerPlayer = config.Bind(
                 "VendorItems",
