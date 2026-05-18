@@ -26,6 +26,9 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
+        internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
+        internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
+        internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
@@ -161,6 +164,24 @@ namespace ServerSideTweaks
                 "ResetChatMaxUpcomingEntries",
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
+
+            EnableVendorItemsPerPlayer = config.Bind(
+                "VendorItems",
+                "EnableVendorItemsPerPlayer",
+                true,
+                "When true, configured boss defeat global keys are sent only to players recorded as having earned them.");
+
+            VendorProgressGlobalKeys = config.Bind(
+                "VendorItems",
+                "VendorProgressGlobalKeys",
+                "defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking",
+                "Comma-separated global keys that should require per-player boss progress when sent to clients.");
+
+            VendorProgressFile = config.Bind(
+                "VendorItems",
+                "VendorProgressFile",
+                "warpalicious.serverSideTweaks.vendorProgress.tsv",
+                "Per-player vendor progress file. Relative paths are resolved from the BepInEx config folder.");
 
             EnableBossStoneTrophyPlacementBlock = config.Bind(
                 "BossStoneTrophies",
