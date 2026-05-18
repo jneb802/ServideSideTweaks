@@ -10,6 +10,12 @@ namespace ServerSideTweaks.Features.Locations
 {
     internal static class PerPlayerLocationIcons
     {
+        private static readonly HashSet<string> VanillaVendorLocationIconNames = new(StringComparer.Ordinal)
+        {
+            "Vendor_BlackForest",
+            "Hildir_camp",
+        };
+
         private static readonly Dictionary<Vector2i, List<LocationIconCandidate>> CandidatesByPlayerZone = new();
         private static readonly Dictionary<string, HashSet<string>> DiscoveriesByPlayer = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<long, Vector2i> LastCheckedZoneByPeer = new();
@@ -166,12 +172,12 @@ namespace ServerSideTweaks.Features.Locations
             foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
-                if (!IsPlacedRevealableIcon(instance))
+                string iconName = instance.m_location.m_prefab.Name;
+                if (!IsPlacedRevealableIcon(instance, iconName))
                 {
                     continue;
                 }
 
-                string iconName = instance.m_location.m_prefab.Name;
                 LocationIconCandidate candidate = new(
                     BuildLocationKey(entry.Key, iconName),
                     instance.m_position,
@@ -228,7 +234,13 @@ namespace ServerSideTweaks.Features.Locations
                     continue;
                 }
 
-                if (!IsPlacedRevealableIcon(instance))
+                if (IsVanillaVendorLocationIcon(instance, iconName))
+                {
+                    icons.Add(new LocationIconCandidate("", instance.m_position, iconName));
+                    continue;
+                }
+
+                if (!IsPlacedRevealableIcon(instance, iconName))
                 {
                     continue;
                 }
@@ -252,9 +264,18 @@ namespace ServerSideTweaks.Features.Locations
             DebugLog($"Sent {icons.Count} location icon(s) to peer {peer.m_uid}; player={(string.IsNullOrWhiteSpace(identity.PlayerName) ? "unknown" : $"{identity.PlayerName} ({identity.PlayerId})")}.");
         }
 
-        private static bool IsPlacedRevealableIcon(ZoneSystem.LocationInstance instance)
+        private static bool IsPlacedRevealableIcon(ZoneSystem.LocationInstance instance, string iconName)
         {
-            return instance.m_placed && instance.m_location.m_iconPlaced;
+            return instance.m_placed &&
+                instance.m_location.m_iconPlaced &&
+                !IsVanillaVendorLocationIcon(instance, iconName);
+        }
+
+        private static bool IsVanillaVendorLocationIcon(ZoneSystem.LocationInstance instance, string iconName)
+        {
+            return instance.m_placed &&
+                instance.m_location.m_iconPlaced &&
+                VanillaVendorLocationIconNames.Contains(iconName);
         }
 
         private static string BuildLocationKey(Vector2i zone, string iconName)
