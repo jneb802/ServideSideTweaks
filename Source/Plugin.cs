@@ -10,6 +10,7 @@ using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
+using ServerSideTweaks.Features.Vendors;
 using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks
@@ -18,7 +19,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.0";
+        private const string ModVersion = "1.1.3";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -54,6 +55,7 @@ namespace ServerSideTweaks
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
+            VendorItemsPerPlayer.ClearRuntimeCache();
             ResetChatCommands.RegisterRoutedRpcHandlers();
             BossSummonMessages.Clear();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();

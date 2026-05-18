@@ -8,6 +8,8 @@ Author: warpalicious
 
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
 - Limits boss summon center-screen messages to players near the summoning player.
+- Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
+- Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
 - Transfers mine rock ownership to the player damaging the rock with a pickaxe before routing the hit RPC.
@@ -47,6 +49,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | BossSummonMessages | BossSummonMessageRange | 120 | Maximum distance from the summoning player for a player to receive the boss summon message. |
 | BossSummonMessages | BossSummonMessagePendingSeconds | 45 | How long a summon attempt can wait for the matching boss spawn message. |
 | BossSummonMessages | DebugBossSummonMessageRange | false | Logs boss summon message range decisions. |
+| VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
+| VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
+| VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |
+| BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
 | TreeOwnership | EnableTreeBaseOwnershipHandoff | true | Standing tree damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | EnableTreeLogOwnershipHandoff | true | Fallen log damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | TreeOwnershipHandoffDelaySeconds | 0.25 | Delay before changing owner so the current damage RPC can finish first. |
@@ -65,6 +71,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | PickableOwnership | PickableOwnershipReplayAttempts | 2 | Maximum replay attempts for a consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayRetrySeconds | 0.35 | Delay between replay attempts. |
 | PickableOwnership | DebugPickableOwnershipHandoff | false | Logs pickable handoff decisions for testing. |
+
+## Vendor Progress File
+
+Vendor progress is saved as a tab-separated file with `playerName` and `globalKey` columns.
 
 ## Reset Chat Commands
 

@@ -30,6 +30,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<float> BossSummonMessageRange = null!;
         internal static ConfigEntry<float> BossSummonMessagePendingSeconds = null!;
         internal static ConfigEntry<bool> DebugBossSummonMessageRange = null!;
+        internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
+        internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
+        internal static ConfigEntry<string> VendorProgressFile = null!;
+        internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -188,6 +192,30 @@ namespace ServerSideTweaks
                 "DebugBossSummonMessageRange",
                 false,
                 "When true, logs boss summon message range decisions.");
+
+            EnableVendorItemsPerPlayer = config.Bind(
+                "VendorItems",
+                "EnableVendorItemsPerPlayer",
+                true,
+                "When true, configured boss defeat global keys are sent only to players recorded as having earned them.");
+
+            VendorProgressGlobalKeys = config.Bind(
+                "VendorItems",
+                "VendorProgressGlobalKeys",
+                "defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking",
+                "Comma-separated global keys that should require per-player boss progress when sent to clients.");
+
+            VendorProgressFile = config.Bind(
+                "VendorItems",
+                "VendorProgressFile",
+                "warpalicious.serverSideTweaks.vendorProgress.tsv",
+                "Per-player vendor progress file. Relative paths are resolved from the BepInEx config folder.");
+
+            EnableBossStoneTrophyPlacementBlock = config.Bind(
+                "BossStoneTrophies",
+                "EnableBossStoneTrophyPlacementBlock",
+                true,
+                "When true, prevents players from placing trophies on start-temple boss stones.");
         }
     }
 }
