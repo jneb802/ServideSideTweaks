@@ -26,6 +26,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
+        internal static ConfigEntry<bool> EnablePerPlayerLocationIcons = null!;
+        internal static ConfigEntry<float> LocationIconRevealDistance = null!;
+        internal static ConfigEntry<string> LocationIconDiscoveryFile = null!;
+        internal static ConfigEntry<bool> DebugPerPlayerLocationIcons = null!;
         internal static ConfigEntry<bool> EnableBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> DebugBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
@@ -166,6 +170,30 @@ namespace ServerSideTweaks
                 "ResetChatMaxUpcomingEntries",
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
+
+            EnablePerPlayerLocationIcons = config.Bind(
+                "LocationIcons",
+                "EnablePerPlayerLocationIcons",
+                true,
+                "When true, placed location icons are revealed per player instead of being sent to every connected player.");
+
+            LocationIconRevealDistance = config.Bind(
+                "LocationIcons",
+                "LocationIconRevealDistance",
+                120.0f,
+                "Distance from a placed location icon required for that player to discover it.");
+
+            LocationIconDiscoveryFile = config.Bind(
+                "LocationIcons",
+                "LocationIconDiscoveryFile",
+                "warpalicious.serverSideTweaks.locationIcons.tsv",
+                "Per-player location icon discovery file. Relative paths are resolved from the BepInEx config folder.");
+
+            DebugPerPlayerLocationIcons = config.Bind(
+                "LocationIcons",
+                "DebugPerPlayerLocationIcons",
+                false,
+                "When true, logs per-player location icon discovery and filtering decisions.");
 
             EnableBossMessageRelayBlock = config.Bind(
                 "BossMessages",
