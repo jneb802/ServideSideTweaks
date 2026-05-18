@@ -12,7 +12,7 @@ namespace ServerSideTweaks.Features.Vendors
     {
         private const float BossProgressCreditRadius = 64f;
 
-        private static readonly Dictionary<string, HashSet<string>> ProgressByPlayer = new(StringComparer.Ordinal);
+        private static readonly Dictionary<string, HashSet<string>> ProgressByPlayer = new(StringComparer.OrdinalIgnoreCase);
         private static HashSet<string>? _restrictedGlobalKeys;
         private static string? _restrictedGlobalKeysConfig;
         private static bool _progressLoaded;
@@ -79,8 +79,8 @@ namespace ServerSideTweaks.Features.Vendors
                     return;
                 }
 
-                HashSet<long> playerIds = GetNearbyPlayerIds(rpcData.m_senderPeerID, BossProgressCreditRadius, defeatKey);
-                RecordBossProgress(defeatKey, playerIds);
+                List<PlayerProgressTarget> players = GetNearbyPlayers(rpcData.m_senderPeerID, BossProgressCreditRadius, defeatKey);
+                RecordBossProgress(defeatKey, players);
             }
             catch (Exception ex)
             {
@@ -88,25 +88,31 @@ namespace ServerSideTweaks.Features.Vendors
             }
         }
 
-        private static void RecordBossProgress(string defeatKey, HashSet<long> playerIds)
+        private static void RecordBossProgress(string defeatKey, List<PlayerProgressTarget> players)
         {
             EnsureProgressLoaded();
 
-            if (playerIds.Count == 0)
+            if (players.Count == 0)
             {
                 DebugLog($"No nearby players found for boss key {defeatKey}.");
                 return;
             }
 
             bool changed = false;
-            foreach (long playerId in playerIds)
+            foreach (PlayerProgressTarget player in players)
             {
-                string playerKey = playerId.ToString();
-                HashSet<string> playerProgress = GetProgress(playerKey);
+                string playerName = SanitizePlayerName(player.PlayerName);
+                if (string.IsNullOrWhiteSpace(playerName))
+                {
+                    DebugLog($"Unable to record {defeatKey} for player {player.PlayerId}: player name is empty.");
+                    continue;
+                }
+
+                HashSet<string> playerProgress = GetProgress(playerName);
                 if (playerProgress.Add(defeatKey))
                 {
                     changed = true;
-                    DebugLog($"Recorded {defeatKey} for player {playerKey}.");
+                    DebugLog($"Recorded {defeatKey} for player {playerName} ({player.PlayerId}).");
                 }
             }
 
@@ -134,37 +140,39 @@ namespace ServerSideTweaks.Features.Vendors
             return key;
         }
 
-        private static HashSet<long> GetNearbyPlayerIds(long sender, float radius, string defeatKey)
+        private static List<PlayerProgressTarget> GetNearbyPlayers(long sender, float radius, string defeatKey)
         {
-            HashSet<long> playerIds = new();
-            if (!TryGetPeerPlayerInfo(sender, out long senderPlayerId, out Vector3 origin))
+            List<PlayerProgressTarget> players = new();
+            HashSet<long> addedPlayerIds = new();
+            if (!TryGetPeerPlayerInfo(sender, out long senderPlayerId, out string senderPlayerName, out Vector3 origin))
             {
                 DebugLog($"Unable to credit {defeatKey}: SetGlobalKey sender {sender} has no resolved player position.");
-                return playerIds;
+                return players;
             }
 
             foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
             {
-                if (peer == null || !peer.IsReady() || !TryGetPeerPlayerInfo(peer, out long playerId, out Vector3 position))
+                if (peer == null || !peer.IsReady() || !TryGetPeerPlayerInfo(peer, out long playerId, out string playerName, out Vector3 position))
                 {
                     continue;
                 }
 
-                if (Vector3.Distance(origin, position) <= radius)
+                if (Vector3.Distance(origin, position) <= radius && addedPlayerIds.Add(playerId))
                 {
-                    playerIds.Add(playerId);
+                    players.Add(new PlayerProgressTarget(playerId, playerName));
                 }
             }
 
-            DebugLog($"Crediting {defeatKey} to {playerIds.Count} player(s) within {radius:0.#}m of sender player {senderPlayerId} at {FormatVector(origin)}.");
-            return playerIds;
+            DebugLog($"Crediting {defeatKey} to {players.Count} player(s) within {radius:0.#}m of sender player {senderPlayerName} ({senderPlayerId}) at {FormatVector(origin)}.");
+            return players;
         }
 
         private static void SendGlobalKeys(ZoneSystem zoneSystem, ZNetPeer peer)
         {
             List<string> keys = zoneSystem.GetGlobalKeys();
-            bool hasPlayerId = TryGetPeerPlayerId(peer, out long playerId);
-            HashSet<string> progress = hasPlayerId ? GetProgress(playerId.ToString()) : new HashSet<string>(StringComparer.Ordinal);
+            bool hasPlayerInfo = TryGetPeerPlayerInfo(peer, out long playerId, out string playerName, out _);
+            string playerProgressKey = hasPlayerInfo ? SanitizePlayerName(playerName) : "";
+            HashSet<string> progress = !string.IsNullOrWhiteSpace(playerProgressKey) ? GetProgress(playerProgressKey) : new HashSet<string>(StringComparer.Ordinal);
             HashSet<string> restrictedKeys = GetRestrictedGlobalKeys();
             List<string> filteredKeys = new();
 
@@ -178,30 +186,27 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "GlobalKeys", filteredKeys);
-            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to peer {peer.m_uid}; playerID={(hasPlayerId ? playerId.ToString() : "unknown")}.");
+            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to peer {peer.m_uid}; player={(hasPlayerInfo ? $"{playerName} ({playerId})" : "unknown")}.");
         }
 
-        private static bool TryGetPeerPlayerId(ZNetPeer peer, out long playerId)
-        {
-            return TryGetPeerPlayerInfo(peer, out playerId, out _);
-        }
-
-        private static bool TryGetPeerPlayerInfo(long peerId, out long playerId, out Vector3 position)
+        private static bool TryGetPeerPlayerInfo(long peerId, out long playerId, out string playerName, out Vector3 position)
         {
             ZNetPeer peer = ZNet.instance.GetPeer(peerId);
             if (peer == null)
             {
                 playerId = 0L;
+                playerName = "";
                 position = Vector3.zero;
                 return false;
             }
 
-            return TryGetPeerPlayerInfo(peer, out playerId, out position);
+            return TryGetPeerPlayerInfo(peer, out playerId, out playerName, out position);
         }
 
-        private static bool TryGetPeerPlayerInfo(ZNetPeer peer, out long playerId, out Vector3 position)
+        private static bool TryGetPeerPlayerInfo(ZNetPeer peer, out long playerId, out string playerName, out Vector3 position)
         {
             playerId = 0L;
+            playerName = "";
             position = Vector3.zero;
 
             if (peer.m_characterID.IsNone() || ZDOMan.instance == null)
@@ -219,6 +224,12 @@ namespace ServerSideTweaks.Features.Vendors
             if (playerId == 0L)
             {
                 return false;
+            }
+
+            playerName = SanitizePlayerName(playerZdo.GetString(ZDOVars.s_playerName, ""));
+            if (string.IsNullOrWhiteSpace(playerName))
+            {
+                playerName = peer.m_playerName ?? "";
             }
 
             position = playerZdo.GetPosition();
@@ -254,10 +265,11 @@ namespace ServerSideTweaks.Features.Vendors
 
         private static HashSet<string> GetProgress(string playerKey)
         {
-            if (!ProgressByPlayer.TryGetValue(playerKey, out HashSet<string> progress))
+            string sanitized = SanitizePlayerName(playerKey);
+            if (!ProgressByPlayer.TryGetValue(sanitized, out HashSet<string> progress))
             {
                 progress = new HashSet<string>(StringComparer.Ordinal);
-                ProgressByPlayer[playerKey] = progress;
+                ProgressByPlayer[sanitized] = progress;
             }
 
             return progress;
@@ -292,10 +304,11 @@ namespace ServerSideTweaks.Features.Vendors
                     continue;
                 }
 
+                string playerName = SanitizePlayerName(parts[0]);
                 string keyName = GetKeyName(parts[1]);
-                if (GetRestrictedGlobalKeys().Contains(keyName))
+                if (!string.IsNullOrWhiteSpace(playerName) && GetRestrictedGlobalKeys().Contains(keyName))
                 {
-                    GetProgress(parts[0].Trim()).Add(keyName);
+                    GetProgress(playerName).Add(keyName);
                 }
             }
         }
@@ -306,11 +319,11 @@ namespace ServerSideTweaks.Features.Vendors
             Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Paths.ConfigPath);
 
             List<string> lines = new();
-            foreach (KeyValuePair<string, HashSet<string>> playerEntry in ProgressByPlayer.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+            foreach (KeyValuePair<string, HashSet<string>> playerEntry in ProgressByPlayer.OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase))
             {
                 foreach (string key in playerEntry.Value.OrderBy(key => key, StringComparer.Ordinal))
                 {
-                    lines.Add($"{playerEntry.Key}\t{key}");
+                    lines.Add($"{EscapeTsv(playerEntry.Key)}\t{key}");
                 }
             }
 
@@ -333,6 +346,28 @@ namespace ServerSideTweaks.Features.Vendors
         private static string FormatVector(Vector3 vector)
         {
             return $"{vector.x:0.0},{vector.y:0.0},{vector.z:0.0}";
+        }
+
+        private static string SanitizePlayerName(string value)
+        {
+            return value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ').Trim();
+        }
+
+        private static string EscapeTsv(string value)
+        {
+            return SanitizePlayerName(value);
+        }
+
+        private readonly struct PlayerProgressTarget
+        {
+            internal PlayerProgressTarget(long playerId, string playerName)
+            {
+                PlayerId = playerId;
+                PlayerName = SanitizePlayerName(playerName);
+            }
+
+            internal long PlayerId { get; }
+            internal string PlayerName { get; }
         }
     }
 

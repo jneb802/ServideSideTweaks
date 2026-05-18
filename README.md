@@ -67,6 +67,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | PickableOwnership | PickableOwnershipReplayRetrySeconds | 0.35 | Delay between replay attempts. |
 | PickableOwnership | DebugPickableOwnershipHandoff | false | Logs pickable handoff decisions for testing. |
 
+## Vendor Progress File
+
+Vendor progress is saved as a tab-separated file with `playerName` and `globalKey` columns.
+
 ## Reset Chat Commands
 
 Cron Job writes `praetoris_resets.json` in the BepInEx config folder when a tracked reset command executes. serverSideTweaks reads that local file, caches the latest valid contents, and answers chat commands from memory.
