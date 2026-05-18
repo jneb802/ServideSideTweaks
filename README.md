@@ -8,6 +8,7 @@ Author: warpalicious
 
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
 - Reveals placed location icons per player instead of sending every placed icon to every connected player.
+- Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
@@ -49,6 +50,8 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | LocationIcons | LocationIconRevealDistance | 120 | Distance from a placed location icon required for that player to discover it. |
 | LocationIcons | LocationIconDiscoveryFile | warpalicious.serverSideTweaks.locationIcons.tsv | Per-player location icon discovery file. Relative paths are resolved from `BepInEx/config`. |
 | LocationIcons | DebugPerPlayerLocationIcons | false | Logs per-player location icon discovery and filtering decisions. |
+| BossMessages | EnableBossMessageRelayBlock | true | Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players. |
+| BossMessages | DebugBossMessageRelayBlock | false | Logs blocked boss center-screen message relays. |
 | VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |
