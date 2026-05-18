@@ -7,7 +7,7 @@ Author: warpalicious
 ## Features
 
 - Adds server-handled reset chat commands. Players can type `!resets` for upcoming reset times or `!resets copper` for the last and next copper reset, with data read from Cron Job's local reset file.
-- Limits boss summon center-screen messages to players near the summoning player.
+- Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
@@ -45,10 +45,8 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | ResetChatCommands | ResetDataFile | praetoris_resets.json | Reset state JSON file written by Cron Job. Relative paths are resolved from `BepInEx/config`. |
 | ResetChatCommands | ResetDataRefreshSeconds | 5 | How often the server checks the reset data file for changes. |
 | ResetChatCommands | ResetChatMaxUpcomingEntries | 5 | Maximum upcoming reset entries shown by `!resets`. |
-| BossSummonMessages | EnableBossSummonMessageRange | true | Sends boss summon center-screen messages only to nearby players. |
-| BossSummonMessages | BossSummonMessageRange | 120 | Maximum distance from the summoning player for a player to receive the boss summon message. |
-| BossSummonMessages | BossSummonMessagePendingSeconds | 45 | How long a summon attempt can wait for the matching boss spawn message. |
-| BossSummonMessages | DebugBossSummonMessageRange | false | Logs boss summon message range decisions. |
+| BossMessages | EnableBossMessageRelayBlock | true | Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players. |
+| BossMessages | DebugBossMessageRelayBlock | false | Logs blocked boss center-screen message relays. |
 | VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |

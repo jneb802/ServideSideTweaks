@@ -26,10 +26,8 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ResetDataFile = null!;
         internal static ConfigEntry<float> ResetDataRefreshSeconds = null!;
         internal static ConfigEntry<int> ResetChatMaxUpcomingEntries = null!;
-        internal static ConfigEntry<bool> EnableBossSummonMessageRange = null!;
-        internal static ConfigEntry<float> BossSummonMessageRange = null!;
-        internal static ConfigEntry<float> BossSummonMessagePendingSeconds = null!;
-        internal static ConfigEntry<bool> DebugBossSummonMessageRange = null!;
+        internal static ConfigEntry<bool> EnableBossMessageRelayBlock = null!;
+        internal static ConfigEntry<bool> DebugBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
@@ -169,29 +167,17 @@ namespace ServerSideTweaks
                 5,
                 "Maximum upcoming reset entries shown by !resets with no argument.");
 
-            EnableBossSummonMessageRange = config.Bind(
-                "BossSummonMessages",
-                "EnableBossSummonMessageRange",
+            EnableBossMessageRelayBlock = config.Bind(
+                "BossMessages",
+                "EnableBossMessageRelayBlock",
                 true,
-                "When true, boss summon center-screen messages are sent only to players near the summoning player instead of every connected player.");
+                "When true, the server does not relay boss summon, alert, and death center-screen messages to other players.");
 
-            BossSummonMessageRange = config.Bind(
-                "BossSummonMessages",
-                "BossSummonMessageRange",
-                120.0f,
-                "Maximum distance from the summoning player's position for a player to receive the boss summon message.");
-
-            BossSummonMessagePendingSeconds = config.Bind(
-                "BossSummonMessages",
-                "BossSummonMessagePendingSeconds",
-                45.0f,
-                "How long a boss summon attempt can wait for the matching boss spawn message before it is ignored.");
-
-            DebugBossSummonMessageRange = config.Bind(
-                "BossSummonMessages",
-                "DebugBossSummonMessageRange",
+            DebugBossMessageRelayBlock = config.Bind(
+                "BossMessages",
+                "DebugBossMessageRelayBlock",
                 false,
-                "When true, logs boss summon message range decisions.");
+                "When true, logs blocked boss center-screen message relays.");
 
             EnableVendorItemsPerPlayer = config.Bind(
                 "VendorItems",
