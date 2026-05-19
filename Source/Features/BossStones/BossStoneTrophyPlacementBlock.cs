@@ -68,24 +68,6 @@ namespace ServerSideTweaks.Features.BossStones
             return false;
         }
 
-        internal static bool AllowOwnerChange(ZDO zdo, long owner)
-        {
-            try
-            {
-                if (!ShouldKeepServerOwned(zdo, owner))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to inspect boss-stone ownership request: {ex}");
-                return true;
-            }
-        }
-
         internal static void NormalizeOwner(ZDO zdo, ref long owner)
         {
             try
