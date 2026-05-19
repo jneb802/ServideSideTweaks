@@ -88,7 +88,20 @@ namespace ServerSideTweaks.Features.Pickables
 
             foreach (ZDOID zdoId in ready)
             {
-                ReplayPick(zdoId, PendingPicks[zdoId], now);
+                if (!PendingPicks.TryGetValue(zdoId, out PendingPick pendingPick))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    ReplayPick(zdoId, pendingPick, now);
+                }
+                catch (Exception ex)
+                {
+                    PendingPicks.Remove(zdoId);
+                    ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to replay pickable ownership handoff for {zdoId}: {ex}");
+                }
             }
         }
 

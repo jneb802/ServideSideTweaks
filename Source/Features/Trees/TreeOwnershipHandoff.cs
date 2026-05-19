@@ -97,9 +97,20 @@ namespace ServerSideTweaks.Features.Trees
 
             foreach (ZDOID zdoId in ready)
             {
-                PendingHandoff handoff = PendingHandoffs[zdoId];
+                if (!PendingHandoffs.TryGetValue(zdoId, out PendingHandoff handoff))
+                {
+                    continue;
+                }
+
                 PendingHandoffs.Remove(zdoId);
-                ApplyHandoff(zdoId, handoff, now);
+                try
+                {
+                    ApplyHandoff(zdoId, handoff, now);
+                }
+                catch (Exception ex)
+                {
+                    ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to apply tree ownership handoff for {zdoId}: {ex}");
+                }
             }
         }
 

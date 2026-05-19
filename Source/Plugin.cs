@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
@@ -48,9 +49,21 @@ namespace ServerSideTweaks
 
         private void Update()
         {
-            ResetDataFile.Update();
-            PickableOwnershipHandoff.Update();
-            TreeOwnershipHandoff.Update();
+            SafeUpdate("reset data file", ResetDataFile.Update);
+            SafeUpdate("pickable ownership handoff", PickableOwnershipHandoff.Update);
+            SafeUpdate("tree ownership handoff", TreeOwnershipHandoff.Update);
+        }
+
+        private static void SafeUpdate(string name, Action update)
+        {
+            try
+            {
+                update();
+            }
+            catch (Exception ex)
+            {
+                ModLogger.LogWarning($"serverSideTweaks {name} update failed: {ex}");
+            }
         }
 
         private static void RegisterRoutedRpcHandlers()
