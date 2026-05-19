@@ -1,4 +1,5 @@
 using HarmonyLib;
+using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Features.Bosses;
 
 namespace ServerSideTweaks.Patches
@@ -22,6 +23,7 @@ namespace ServerSideTweaks.Patches
                 rpcData.Deserialize(pkg);
                 pkg.SetPos(0);
 
+                BossStoneTrophyPlacementBlock.NotifyBlockedInteraction(rpcData);
                 return !BossMessage.TryConsumeIncomingRoutedRpc(rpcData);
             }
             catch (System.Exception ex)
