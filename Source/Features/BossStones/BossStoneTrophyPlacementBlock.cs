@@ -6,7 +6,9 @@ namespace ServerSideTweaks.Features.BossStones
 {
     internal static class BossStoneTrophyPlacementBlock
     {
+        private const string PlacementBlockedMessage = "You must build a boss stone to place trophy";
         private const string StartTempleLocationName = "StartTemple";
+        private static readonly int RequestOwnHash = "RPC_RequestOwn".GetStableHashCode();
 
         private static readonly int[] BossStonePrefabHashes =
         {
@@ -66,6 +68,26 @@ namespace ServerSideTweaks.Features.BossStones
 
             ServerSideTweaksPlugin.ModLogger.LogInfo($"Blocked boss-stone trophy ZDO item write. zdo={zdoId} item={value}");
             return false;
+        }
+
+        internal static void NotifyBlockedInteraction(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            if (rpcData.m_methodHash != RequestOwnHash || !IsEnabledOnServer() || rpcData.m_targetZDO.IsNone())
+            {
+                return;
+            }
+
+            ZDO? zdo = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(rpcData.m_targetZDO) : null;
+            if (zdo == null || !IsStartTempleBossStone(zdo))
+            {
+                return;
+            }
+
+            ZRoutedRpc.instance?.InvokeRoutedRPC(
+                rpcData.m_senderPeerID,
+                "ShowMessage",
+                (int)MessageHud.MessageType.Center,
+                PlacementBlockedMessage);
         }
 
         internal static void NormalizeOwner(ZDO zdo, ref long owner)
