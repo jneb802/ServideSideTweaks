@@ -180,7 +180,7 @@ namespace ServerSideTweaks
             LocationIconRevealDistance = config.Bind(
                 "LocationIcons",
                 "LocationIconRevealDistance",
-                120.0f,
+                256.0f,
                 "Distance from a placed location icon required for that player to discover it.");
 
             LocationIconDiscoveryFile = config.Bind(
