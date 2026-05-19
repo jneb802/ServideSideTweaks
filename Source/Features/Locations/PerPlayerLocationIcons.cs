@@ -38,7 +38,7 @@ namespace ServerSideTweaks.Features.Locations
             try
             {
                 EnsureDiscoveryStateLoaded();
-                RebuildCandidateIndex(zoneSystem);
+                EnsureCandidateIndex(zoneSystem);
 
                 if (peer == ZRoutedRpc.Everybody)
                 {
@@ -64,7 +64,7 @@ namespace ServerSideTweaks.Features.Locations
             catch (Exception ex)
             {
                 ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to send per-player location icons: {ex}");
-                return true;
+                return false;
             }
         }
 
@@ -166,12 +166,16 @@ namespace ServerSideTweaks.Features.Locations
             foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
+                if (!TryGetLocationIconName(instance, out string iconName))
+                {
+                    continue;
+                }
+
                 if (!IsPlacedRevealableIcon(instance))
                 {
                     continue;
                 }
 
-                string iconName = instance.m_location.m_prefab.Name;
                 LocationIconCandidate candidate = new(
                     BuildLocationKey(entry.Key, iconName),
                     instance.m_position,
@@ -220,7 +224,10 @@ namespace ServerSideTweaks.Features.Locations
             foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
-                string iconName = instance.m_location.m_prefab.Name;
+                if (!TryGetLocationIconName(instance, out string iconName))
+                {
+                    continue;
+                }
 
                 if (instance.m_location.m_iconAlways)
                 {
@@ -254,7 +261,19 @@ namespace ServerSideTweaks.Features.Locations
 
         private static bool IsPlacedRevealableIcon(ZoneSystem.LocationInstance instance)
         {
-            return instance.m_placed && instance.m_location.m_iconPlaced;
+            return instance.m_placed && instance.m_location != null && instance.m_location.m_iconPlaced;
+        }
+
+        private static bool TryGetLocationIconName(ZoneSystem.LocationInstance instance, out string iconName)
+        {
+            iconName = "";
+            if (instance.m_location == null || instance.m_location.m_prefab == null || string.IsNullOrWhiteSpace(instance.m_location.m_prefab.Name))
+            {
+                return false;
+            }
+
+            iconName = instance.m_location.m_prefab.Name;
+            return true;
         }
 
         private static string BuildLocationKey(Vector2i zone, string iconName)

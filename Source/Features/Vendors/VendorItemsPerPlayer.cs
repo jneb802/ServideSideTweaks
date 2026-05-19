@@ -60,7 +60,7 @@ namespace ServerSideTweaks.Features.Vendors
             catch (Exception ex)
             {
                 ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to send per-player vendor global keys: {ex}");
-                return true;
+                return false;
             }
         }
 

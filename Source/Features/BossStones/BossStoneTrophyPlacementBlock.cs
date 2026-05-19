@@ -30,6 +30,9 @@ namespace ServerSideTweaks.Features.BossStones
             "TrophyFader"
         };
 
+        private static readonly Dictionary<ZDOID, float> LastOwnerBlockLogTimes = new();
+        private const float OwnerBlockLogIntervalSeconds = 60f;
+
         internal static bool AllowZdoStringSet(ZDOID zdoId, int hash, string value)
         {
             if (!ShouldBlockZdoItemSet(zdoId, hash, value))
@@ -68,15 +71,41 @@ namespace ServerSideTweaks.Features.BossStones
             return false;
         }
 
+        internal static bool AllowOwnerChange(ZDO zdo, long owner)
+        {
+            try
+            {
+                if (!ShouldKeepServerOwned(zdo, owner))
+                {
+                    return true;
+                }
+
+                LogOwnerBlock(zdo, owner);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to inspect boss-stone ownership request: {ex}");
+                return true;
+            }
+        }
+
         internal static void NormalizeOwner(ZDO zdo, ref long owner)
         {
-            if (!IsEnabledOnServer() || owner == ZDOMan.instance.m_sessionID || !IsStartTempleBossStone(zdo))
+            try
             {
-                return;
-            }
+                if (!ShouldKeepServerOwned(zdo, owner))
+                {
+                    return;
+                }
 
-            ServerSideTweaksPlugin.ModLogger.LogInfo($"Kept start-temple boss stone server-owned. zdo={zdo.m_uid} requestedOwner={owner} pos={FormatVector(zdo.GetPosition())}");
-            owner = ZDOMan.instance.m_sessionID;
+                LogOwnerBlock(zdo, owner);
+                owner = ZDOMan.instance.m_sessionID;
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to normalize boss-stone ownership request: {ex}");
+            }
         }
 
         private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, string value)
@@ -88,6 +117,28 @@ namespace ServerSideTweaks.Features.BossStones
 
             ZDO? zdo = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(zdoId) : null;
             return zdo != null && IsStartTempleBossStone(zdo);
+        }
+
+        private static bool ShouldKeepServerOwned(ZDO zdo, long requestedOwner)
+        {
+            if (!IsEnabledOnServer() || ZDOMan.instance == null || requestedOwner == 0L || requestedOwner == ZDOMan.instance.m_sessionID)
+            {
+                return false;
+            }
+
+            return IsStartTempleBossStone(zdo);
+        }
+
+        private static void LogOwnerBlock(ZDO zdo, long requestedOwner)
+        {
+            float now = Time.realtimeSinceStartup;
+            if (LastOwnerBlockLogTimes.TryGetValue(zdo.m_uid, out float lastLog) && now - lastLog < OwnerBlockLogIntervalSeconds)
+            {
+                return;
+            }
+
+            LastOwnerBlockLogTimes[zdo.m_uid] = now;
+            ServerSideTweaksPlugin.ModLogger.LogInfo($"Kept start-temple boss stone server-owned. zdo={zdo.m_uid} requestedOwner={requestedOwner} pos={FormatVector(zdo.GetPosition())}");
         }
 
         private static bool IsStartTempleBossStone(ZDO zdo)

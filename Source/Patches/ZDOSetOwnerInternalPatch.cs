@@ -3,6 +3,15 @@ using ServerSideTweaks.Features.BossStones;
 
 namespace ServerSideTweaks.Patches
 {
+    [HarmonyPatch(typeof(ZDO), nameof(ZDO.SetOwner))]
+    internal static class ZDOSetOwnerPatch
+    {
+        private static bool Prefix(ZDO __instance, long uid)
+        {
+            return BossStoneTrophyPlacementBlock.AllowOwnerChange(__instance, uid);
+        }
+    }
+
     [HarmonyPatch(typeof(ZDO), nameof(ZDO.SetOwnerInternal))]
     internal static class ZDOSetOwnerInternalPatch
     {
