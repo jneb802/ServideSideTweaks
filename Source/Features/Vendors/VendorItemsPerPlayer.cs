@@ -314,6 +314,11 @@ namespace ServerSideTweaks.Features.Vendors
                 playerName = peer.m_playerName ?? "";
             }
 
+            if (string.IsNullOrWhiteSpace(playerName))
+            {
+                return false;
+            }
+
             position = playerZdo.GetPosition();
             return true;
         }
