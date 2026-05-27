@@ -13,7 +13,7 @@ namespace ServerSideTweaks.Features.Vendors
     {
         private const float BossProgressCreditRadius = 64f;
         private const float GlobalKeyRetryDelaySeconds = 0.5f;
-        private const int GlobalKeyRetryAttempts = 20;
+        private const int GlobalKeyRetryAttempts = 240;
         private const string DefaultProgressFileName = "warpalicious.serverSideTweaks.vendorProgress.yaml";
         private const string LegacyProgressFileName = "warpalicious.serverSideTweaks.vendorProgress.tsv";
 
@@ -69,7 +69,7 @@ namespace ServerSideTweaks.Features.Vendors
                 if (retry.AttemptsRemaining <= 0)
                 {
                     _pendingGlobalKeyRetries.Remove(peerId);
-                    DebugLog($"Stopped retrying vendor global key sync for peer {peerId}: player info did not become available.");
+                    DebugLog($"Stopped retrying vendor global key sync for peer {peerId}: player info did not become available after {GlobalKeyRetryAttempts} attempts.");
                     continue;
                 }
 
@@ -227,16 +227,22 @@ namespace ServerSideTweaks.Features.Vendors
         {
             List<string> keys = zoneSystem.GetGlobalKeys();
             bool hasPlayerInfo = TryGetPeerPlayerInfo(peer, out long playerId, out string playerName, out _);
-            if (hasPlayerInfo)
+            bool hasProgressName = hasPlayerInfo;
+            if (!hasProgressName)
+            {
+                hasProgressName = TryGetPeerProgressName(peer, out playerName);
+            }
+
+            if (hasProgressName)
             {
                 _pendingGlobalKeyRetries.Remove(peer.m_uid);
             }
             else
             {
-                QueueGlobalKeyRetry(peer.m_uid);
+                QueueGlobalKeyRetry(peer.m_uid, false);
             }
 
-            string playerProgressKey = hasPlayerInfo ? SanitizePlayerName(playerName) : "";
+            string playerProgressKey = hasProgressName ? SanitizePlayerName(playerName) : "";
             HashSet<string> progress = !string.IsNullOrWhiteSpace(playerProgressKey)
                 ? LoadProgressDocument().GetPlayerKeys(playerProgressKey)
                 : new HashSet<string>(StringComparer.Ordinal);
@@ -253,12 +259,30 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "GlobalKeys", filteredKeys);
-            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to peer {peer.m_uid}; player={(hasPlayerInfo ? $"{playerName} ({playerId})" : "unknown")}.");
+            DebugLog($"Sent {filteredKeys.Count}/{keys.Count} global key(s) to peer {peer.m_uid}; player={FormatPlayerForLog(hasPlayerInfo, hasProgressName, playerName, playerId)}.");
         }
 
-        private static void QueueGlobalKeyRetry(long peerId)
+        internal static void QueueGlobalKeyRetryForCharacter(ZDOID characterId)
         {
-            if (_pendingGlobalKeyRetries.ContainsKey(peerId))
+            if (!IsEnabled() || characterId.IsNone())
+            {
+                return;
+            }
+
+            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
+            {
+                if (peer != null && peer.IsReady() && peer.m_characterID == characterId)
+                {
+                    QueueGlobalKeyRetry(peer.m_uid, true);
+                    return;
+                }
+            }
+        }
+
+        private static void QueueGlobalKeyRetry(long peerId, bool retryImmediately)
+        {
+            if (_pendingGlobalKeyRetries.TryGetValue(peerId, out PendingGlobalKeyRetry existingRetry) &&
+                existingRetry.AttemptsRemaining >= GlobalKeyRetryAttempts / 2)
             {
                 return;
             }
@@ -266,7 +290,7 @@ namespace ServerSideTweaks.Features.Vendors
             _pendingGlobalKeyRetries[peerId] = new PendingGlobalKeyRetry
             {
                 AttemptsRemaining = GlobalKeyRetryAttempts,
-                NextRetryTime = Time.time + GlobalKeyRetryDelaySeconds
+                NextRetryTime = retryImmediately ? Time.time : Time.time + GlobalKeyRetryDelaySeconds
             };
             DebugLog($"Queued vendor global key retry for peer {peerId}: player info is not available yet.");
         }
@@ -283,6 +307,27 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             return TryGetPeerPlayerInfo(peer, out playerId, out playerName, out position);
+        }
+
+        private static bool TryGetPeerProgressName(ZNetPeer peer, out string playerName)
+        {
+            playerName = "";
+
+            if (!peer.m_characterID.IsNone() && ZDOMan.instance != null)
+            {
+                ZDO? playerZdo = ZDOMan.instance.GetZDO(peer.m_characterID);
+                if (playerZdo != null)
+                {
+                    playerName = SanitizePlayerName(playerZdo.GetString(ZDOVars.s_playerName, ""));
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(playerName))
+            {
+                playerName = SanitizePlayerName(peer.m_playerName ?? "");
+            }
+
+            return !string.IsNullOrWhiteSpace(playerName);
         }
 
         private static bool TryGetPeerPlayerInfo(ZNetPeer peer, out long playerId, out string playerName, out Vector3 position)
@@ -554,6 +599,16 @@ namespace ServerSideTweaks.Features.Vendors
             return $"{vector.x:0.0},{vector.y:0.0},{vector.z:0.0}";
         }
 
+        private static string FormatPlayerForLog(bool hasPlayerInfo, bool hasProgressName, string playerName, long playerId)
+        {
+            if (hasPlayerInfo)
+            {
+                return $"{playerName} ({playerId})";
+            }
+
+            return hasProgressName ? $"{playerName} (pending character)" : "unknown";
+        }
+
         private static string SanitizePlayerName(string value)
         {
             return value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ').Trim();
@@ -652,6 +707,15 @@ namespace ServerSideTweaks.Features.Vendors
         private static bool Prefix(ZoneSystem __instance, long peer)
         {
             return !VendorItemsPerPlayer.TrySendFilteredGlobalKeys(__instance, peer);
+        }
+    }
+
+    [HarmonyPatch(typeof(ZNet), "RPC_CharacterID")]
+    internal static class ZNetCharacterIdVendorGlobalKeysPatch
+    {
+        private static void Postfix(ZDOID characterID)
+        {
+            VendorItemsPerPlayer.QueueGlobalKeyRetryForCharacter(characterID);
         }
     }
 
