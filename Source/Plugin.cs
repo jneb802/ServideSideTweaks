@@ -52,7 +52,6 @@ namespace ServerSideTweaks
 
         private void Update()
         {
-            ResetDataFile.Update();
             VendorItemsPerPlayer.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
