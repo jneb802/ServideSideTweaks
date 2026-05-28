@@ -3,7 +3,6 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using ServerSideTweaks.Features.Bosses;
-using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
 using ServerSideTweaks.Features.Harvest;
@@ -20,7 +19,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.5";
+        private const string ModVersion = "1.1.6";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -48,7 +47,6 @@ namespace ServerSideTweaks
 
         private void Update()
         {
-            ResetDataFile.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
         }
@@ -58,7 +56,6 @@ namespace ServerSideTweaks
             RoutedRpcDispatcher.Clear();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
-            ResetChatCommands.RegisterRoutedRpcHandlers();
             BossMessage.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
