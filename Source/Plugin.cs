@@ -20,7 +20,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.7";
+        private const string ModVersion = "1.1.9";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -52,6 +52,7 @@ namespace ServerSideTweaks
 
         private void Update()
         {
+            VendorItemsPerPlayer.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
         }

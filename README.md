@@ -49,7 +49,7 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | BossMessages | DebugBossMessageRelayBlock | false | Logs blocked boss center-screen message relays. |
 | VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
-| VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |
+| VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.yaml | Per-player vendor progress YAML file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
 | TreeOwnership | EnableTreeBaseOwnershipHandoff | true | Standing tree damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | EnableTreeLogOwnershipHandoff | true | Fallen log damage schedules ownership handoff to the attacking player. |
@@ -72,7 +72,21 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 
 ## Vendor Progress File
 
-Vendor progress is saved as a tab-separated file with `playerName` and `globalKey` columns.
+Vendor progress is saved as a YAML file. The server reads the file from disk when sending vendor-related global keys and reloads it before recording new boss progress, so manual edits take effect without restarting the server.
+
+```yaml
+players:
+  'Warponiius':
+    playerId: 2123954456
+    globalKeys:
+      - defeated_eikthyr
+      - defeated_gdking
+      - defeated_bonemass
+      - defeated_dragon
+      - defeated_goblinking
+```
+
+If the YAML file does not exist yet, the server can read the old `warpalicious.serverSideTweaks.vendorProgress.tsv` file and writes future updates to the YAML file.
 
 ## Location Icon Discovery File
 

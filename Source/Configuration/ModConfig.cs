@@ -198,8 +198,8 @@ namespace ServerSideTweaks
             VendorProgressFile = config.Bind(
                 "VendorItems",
                 "VendorProgressFile",
-                "warpalicious.serverSideTweaks.vendorProgress.tsv",
-                "Per-player vendor progress file. Relative paths are resolved from the BepInEx config folder.");
+                "warpalicious.serverSideTweaks.vendorProgress.yaml",
+                "Per-player vendor progress YAML file. Relative paths are resolved from the BepInEx config folder.");
 
             EnableBossStoneTrophyPlacementBlock = config.Bind(
                 "BossStoneTrophies",
