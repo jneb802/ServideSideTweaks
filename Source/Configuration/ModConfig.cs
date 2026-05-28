@@ -29,6 +29,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> EnableBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> DebugBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
+        internal static ConfigEntry<bool> PreventBossDefeatGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
@@ -184,6 +185,12 @@ namespace ServerSideTweaks
                 "EnableVendorItemsPerPlayer",
                 true,
                 "When true, configured boss defeat global keys are sent only to players recorded as having earned them.");
+
+            PreventBossDefeatGlobalKeys = config.Bind(
+                "VendorItems",
+                "PreventBossDefeatGlobalKeys",
+                true,
+                "When true, boss defeat global keys whose names start with defeated_ are not added to server world global keys.");
 
             VendorProgressGlobalKeys = config.Bind(
                 "VendorItems",
