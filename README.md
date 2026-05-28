@@ -17,6 +17,7 @@ Author: warpalicious
 - Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
 - Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
 - Experimental pickable ownership handoff that consumes vanilla pick RPCs, transfers ownership to the picker, then replays the pick after a short delay.
+- Optional per-player Jotunn config sync. Server admins can list config files in YAML and override specific Jotunn-synced config values for specific player names.
 
 ## Prerequisites
 
@@ -74,6 +75,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | PickableOwnership | PickableOwnershipReplayAttempts | 2 | Maximum replay attempts for a consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayRetrySeconds | 0.35 | Delay between replay attempts. |
 | PickableOwnership | DebugPickableOwnershipHandoff | false | Logs pickable handoff decisions for testing. |
+| JotunnConfigSync | EnablePerPlayerJotunnConfigSync | false | Suppresses Jotunn's normal server-wide sync for config files listed in the YAML override file and sends player-specific values instead. |
+| JotunnConfigSync | JotunnConfigOverridesFile | warpalicious.serverSideTweaks.jotunnConfigOverrides.yaml | YAML file containing per-player Jotunn config overrides. Relative paths are resolved from `BepInEx/config`. |
+| JotunnConfigSync | JotunnConfigSyncDelaySeconds | 1.0 | Delay after the server receives a player's character ID before sending that player's Jotunn config overrides. |
+| JotunnConfigSync | DebugPerPlayerJotunnConfigSync | false | Logs per-player Jotunn config sync decisions. |
 
 ## Vendor Progress File
 
@@ -82,6 +87,44 @@ Vendor progress is saved as a tab-separated file with `playerName` and `globalKe
 ## Location Icon Discovery File
 
 Location icon discoveries are saved as a tab-separated file with `playerName` and `zoneX:zoneY:locationPrefabName` columns.
+
+## Jotunn Config Override File
+
+The Jotunn config override file is YAML. It supports a small mapping-only YAML subset: two-space indentation, no lists, and scalar values only.
+
+Any config file named in the YAML becomes managed by serverSideTweaks. Jotunn's normal server-wide sync is suppressed for that config file, then serverSideTweaks sends each player the server's current values plus any matching player/default overrides.
+
+Default path:
+
+```text
+BepInEx/config/warpalicious.serverSideTweaks.jotunnConfigOverrides.yaml
+```
+
+Example:
+
+```yaml
+default:
+  Searica.Valheim.MoreVanillaBuildPrefabs.cfg:
+    Global:
+      CreativeMode: false
+
+players:
+  Ben:
+    Searica.Valheim.MoreVanillaBuildPrefabs.cfg:
+      Global:
+        CreativeMode: true
+      ArmorStand_Female:
+        Enabled: true
+```
+
+The nesting is:
+
+```text
+players -> player name -> config file -> config section -> config key: serialized value
+default -> config file -> config section -> config key: serialized value
+```
+
+Use the config filename as Jotunn's config identifier, usually the file name under `BepInEx/config`. Ordered Jotunn section names can be written either exactly as they appear in the config file or without the leading numeric order, such as `Global`.
 
 ## Reset Chat Commands
 

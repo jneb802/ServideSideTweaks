@@ -36,6 +36,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
+        internal static ConfigEntry<bool> EnablePerPlayerJotunnConfigSync = null!;
+        internal static ConfigEntry<string> JotunnConfigOverridesFile = null!;
+        internal static ConfigEntry<float> JotunnConfigSyncDelaySeconds = null!;
+        internal static ConfigEntry<bool> DebugPerPlayerJotunnConfigSync = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -230,6 +234,30 @@ namespace ServerSideTweaks
                 "EnableBossStoneTrophyPlacementBlock",
                 true,
                 "When true, prevents players from placing trophies on start-temple boss stones.");
+
+            EnablePerPlayerJotunnConfigSync = config.Bind(
+                "JotunnConfigSync",
+                "EnablePerPlayerJotunnConfigSync",
+                false,
+                "When true, suppresses Jotunn's normal server-wide sync for config files listed in the YAML override file and sends player-specific values instead.");
+
+            JotunnConfigOverridesFile = config.Bind(
+                "JotunnConfigSync",
+                "JotunnConfigOverridesFile",
+                "warpalicious.serverSideTweaks.jotunnConfigOverrides.yaml",
+                "YAML file containing per-player Jotunn config overrides. Relative paths are resolved from the BepInEx config folder.");
+
+            JotunnConfigSyncDelaySeconds = config.Bind(
+                "JotunnConfigSync",
+                "JotunnConfigSyncDelaySeconds",
+                1.0f,
+                "Delay after the server receives a player's character ID before sending that player's Jotunn config overrides.");
+
+            DebugPerPlayerJotunnConfigSync = config.Bind(
+                "JotunnConfigSync",
+                "DebugPerPlayerJotunnConfigSync",
+                false,
+                "When true, logs per-player Jotunn config sync decisions.");
         }
     }
 }

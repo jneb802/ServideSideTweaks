@@ -7,6 +7,7 @@ using ServerSideTweaks.Features.Chat;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
 using ServerSideTweaks.Features.Harvest;
+using ServerSideTweaks.Features.JotunnConfig;
 using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
@@ -17,10 +18,11 @@ using ServerSideTweaks.Infrastructure.Routing;
 namespace ServerSideTweaks
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency("com.jotunn.jotunn", BepInDependency.DependencyFlags.SoftDependency)]
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.5";
+        private const string ModVersion = "1.1.6";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -51,6 +53,7 @@ namespace ServerSideTweaks
             ResetDataFile.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
+            PerPlayerJotunnConfigSync.Update();
         }
 
         private static void RegisterRoutedRpcHandlers()
