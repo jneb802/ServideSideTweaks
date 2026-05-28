@@ -88,6 +88,31 @@ namespace ServerSideTweaks.Features.Vendors
             }
         }
 
+        internal static bool TryPreventTrackedGlobalKeySet(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            if (!ShouldPreventGlobalKeySet())
+            {
+                return false;
+            }
+
+            try
+            {
+                string keyName = ReadGlobalKey(rpcData.m_parameters);
+                if (!IsBossDefeatGlobalKey(keyName))
+                {
+                    return false;
+                }
+
+                DebugLog($"Blocked server boss defeat global key set for {keyName}; configured vendor progress is tracked in {ModConfig.VendorProgressFile.Value}.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to check vendor progress global key block: {ex}");
+                return false;
+            }
+        }
+
         private static void RecordBossProgress(string defeatKey, List<PlayerProgressTarget> players)
         {
             EnsureProgressLoaded();
@@ -130,6 +155,11 @@ namespace ServerSideTweaks.Features.Vendors
                 ZNet.instance != null &&
                 ZNet.instance.IsServer() &&
                 ZRoutedRpc.instance != null;
+        }
+
+        private static bool ShouldPreventGlobalKeySet()
+        {
+            return ModConfig.PreventBossDefeatGlobalKeys.Value == true && IsEnabled();
         }
 
         private static string ReadGlobalKey(ZPackage parameters)
@@ -263,6 +293,11 @@ namespace ServerSideTweaks.Features.Vendors
             return key.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant() ?? "";
         }
 
+        private static bool IsBossDefeatGlobalKey(string keyName)
+        {
+            return keyName.StartsWith("defeated_", StringComparison.Ordinal);
+        }
+
         private static HashSet<string> GetProgress(string playerKey)
         {
             string sanitized = SanitizePlayerName(playerKey);
@@ -385,12 +420,15 @@ namespace ServerSideTweaks.Features.Vendors
     {
         private static readonly int SetGlobalKeyHash = "SetGlobalKey".GetStableHashCode();
 
-        private static void Prefix(ZRoutedRpc.RoutedRPCData data)
+        private static bool Prefix(ZRoutedRpc.RoutedRPCData data)
         {
             if (data.m_methodHash == SetGlobalKeyHash)
             {
                 VendorItemsPerPlayer.TrackBossDefeatGlobalKey(data);
+                return !VendorItemsPerPlayer.TryPreventTrackedGlobalKeySet(data);
             }
+
+            return true;
         }
     }
 }

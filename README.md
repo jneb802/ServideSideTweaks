@@ -8,7 +8,7 @@ Author: warpalicious
 
 - Reveals placed location icons per player instead of sending every placed icon to every connected player.
 - Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players.
-- Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
+- Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key, then boss defeat global keys are prevented from being added to the server world keys.
 - Prevents players from placing trophies on start-temple boss stones.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
@@ -48,6 +48,7 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | BossMessages | EnableBossMessageRelayBlock | true | Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players. |
 | BossMessages | DebugBossMessageRelayBlock | false | Logs blocked boss center-screen message relays. |
 | VendorItems | EnableVendorItemsPerPlayer | true | Sends configured boss defeat global keys only to players recorded as having earned them. |
+| VendorItems | PreventBossDefeatGlobalKeys | true | Prevents boss defeat global keys whose names start with `defeated_` from being added to server world global keys. |
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.tsv | Per-player vendor progress file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
