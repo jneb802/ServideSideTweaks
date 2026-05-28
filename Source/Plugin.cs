@@ -10,6 +10,7 @@ using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.Mining;
 using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
+using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
 using ServerSideTweaks.Infrastructure.Routing;
 
@@ -19,21 +20,24 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.6";
+        private const string ModVersion = "1.1.7";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
         private ConfigWatcher? _configWatcher;
 
+        internal static ServerSideTweaksPlugin? Instance { get; private set; }
         internal static readonly ManualLogSource ModLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
 
         public void Awake()
         {
+            Instance = this;
             ModConfig.Bind(Config);
             RegisterRoutedRpcHandlers();
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);
+            ValheimEnforcerKickAlerts.TryPatch(_harmony);
             _configWatcher = new ConfigWatcher(Config, ModGUID, ModLogger);
             ModLogger.LogInfo($"{ModName} {ModVersion} loaded.");
         }
@@ -43,6 +47,7 @@ namespace ServerSideTweaks
             _harmony.UnpatchSelf();
             _configWatcher?.Dispose();
             Config.Save();
+            Instance = null;
         }
 
         private void Update()
