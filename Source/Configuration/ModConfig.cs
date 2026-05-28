@@ -32,6 +32,10 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
+        internal static ConfigEntry<bool> EnableValheimEnforcerKickAlerts = null!;
+        internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
+        internal static ConfigEntry<string> ValheimEnforcerBotApiKey = null!;
+        internal static ConfigEntry<bool> DebugValheimEnforcerKickAlerts = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -202,6 +206,30 @@ namespace ServerSideTweaks
                 "EnableBossStoneTrophyPlacementBlock",
                 true,
                 "When true, prevents players from placing trophies on start-temple boss stones.");
+
+            EnableValheimEnforcerKickAlerts = config.Bind(
+                "ValheimEnforcer",
+                "EnableKickAlerts",
+                false,
+                "When true, sends a Discord alert when ValheimEnforcer rejects a player for a mod mismatch.");
+
+            ValheimEnforcerKickAlertBotUrl = config.Bind(
+                "ValheimEnforcer",
+                "KickAlertBotUrl",
+                "",
+                "Praetoris bot API URL for ValheimEnforcer mod mismatch alerts.");
+
+            ValheimEnforcerBotApiKey = config.Bind(
+                "ValheimEnforcer",
+                "BotApiKey",
+                "",
+                "API key sent to the Praetoris bot alert endpoint in the X-API-Key header.");
+
+            DebugValheimEnforcerKickAlerts = config.Bind(
+                "ValheimEnforcer",
+                "DebugKickAlerts",
+                false,
+                "When true, logs ValheimEnforcer kick alert decisions and API results.");
         }
     }
 }
