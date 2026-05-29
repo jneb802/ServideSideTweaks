@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
@@ -22,8 +24,10 @@ namespace ServerSideTweaks
         private const string ModName = "serverSideTweaks";
         private const string ModVersion = "1.1.9";
         private const string ModGUID = "warpalicious.serverSideTweaks";
+        private const double UpdateFailureLogIntervalSeconds = 30.0;
 
         private readonly Harmony _harmony = new(ModGUID);
+        private readonly Dictionary<string, DateTime> _lastUpdateFailureLogTimes = new(StringComparer.Ordinal);
         private ConfigWatcher? _configWatcher;
 
         internal static ServerSideTweaksPlugin? Instance { get; private set; }
@@ -52,9 +56,37 @@ namespace ServerSideTweaks
 
         private void Update()
         {
-            VendorItemsPerPlayer.Update();
-            PickableOwnershipHandoff.Update();
-            TreeOwnershipHandoff.Update();
+            RunUpdateStep("vendor item progress", VendorItemsPerPlayer.Update);
+            RunUpdateStep("pickable ownership handoff", PickableOwnershipHandoff.Update);
+            RunUpdateStep("tree ownership handoff", TreeOwnershipHandoff.Update);
+        }
+
+        private void RunUpdateStep(string name, Action update)
+        {
+            try
+            {
+                update();
+            }
+            catch (Exception ex)
+            {
+                if (ShouldLogUpdateFailure(name))
+                {
+                    ModLogger.LogWarning($"serverSideTweaks {name} update failed; continuing server update loop: {ex}");
+                }
+            }
+        }
+
+        private bool ShouldLogUpdateFailure(string name)
+        {
+            DateTime now = DateTime.UtcNow;
+            if (_lastUpdateFailureLogTimes.TryGetValue(name, out DateTime lastLog) &&
+                (now - lastLog).TotalSeconds < UpdateFailureLogIntervalSeconds)
+            {
+                return false;
+            }
+
+            _lastUpdateFailureLogTimes[name] = now;
+            return true;
         }
 
         private static void RegisterRoutedRpcHandlers()
