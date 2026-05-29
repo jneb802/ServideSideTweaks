@@ -19,10 +19,12 @@ namespace ServerSideTweaks.Features.Locations
         private static readonly Dictionary<Vector2i, List<LocationIconCandidate>> CandidatesByPlayerZone = new();
         private static readonly Dictionary<string, HashSet<string>> DiscoveriesByPlayer = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<long, Vector2i> LastCheckedZoneByPeer = new();
+        private const float InvalidLocationWarningIntervalSeconds = 60.0f;
 
         private static bool _indexBuilt;
         private static bool _discoveriesLoaded;
         private static float _indexedRevealDistance = -1.0f;
+        private static float _lastInvalidLocationWarningTime = -InvalidLocationWarningIntervalSeconds;
 
         internal static void ClearRuntimeCache()
         {
@@ -43,6 +45,17 @@ namespace ServerSideTweaks.Features.Locations
 
             try
             {
+                if (zoneSystem == null || ZNet.instance == null)
+                {
+                    return false;
+                }
+
+                if (ZRoutedRpc.instance == null)
+                {
+                    LogSkippedLocationSend("ZRoutedRpc.instance is null");
+                    return true;
+                }
+
                 EnsureDiscoveryStateLoaded();
                 RebuildCandidateIndex(zoneSystem);
 
@@ -149,8 +162,7 @@ namespace ServerSideTweaks.Features.Locations
         {
             return ModConfig.EnablePerPlayerLocationIcons.Value == true &&
                 ZNet.instance != null &&
-                ZNet.instance.IsServer() &&
-                ZRoutedRpc.instance != null;
+                ZNet.instance.IsServer();
         }
 
         private static void EnsureCandidateIndex(ZoneSystem zoneSystem)
@@ -168,11 +180,21 @@ namespace ServerSideTweaks.Features.Locations
         {
             CandidatesByPlayerZone.Clear();
             float revealDistance = GetRevealDistance();
+            int skippedInvalidLocations = 0;
+            Vector2i? firstInvalidZone = null;
+            Exception? firstInvalidException = null;
 
             foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
-                string iconName = instance.m_location.m_prefab.Name;
+                if (!TryGetLocationIconName(instance, out string iconName, out Exception? iconNameException))
+                {
+                    skippedInvalidLocations++;
+                    firstInvalidZone ??= entry.Key;
+                    firstInvalidException ??= iconNameException;
+                    continue;
+                }
+
                 if (!IsPlacedRevealableIcon(instance, iconName))
                 {
                     continue;
@@ -189,6 +211,7 @@ namespace ServerSideTweaks.Features.Locations
             _indexBuilt = true;
             _indexedRevealDistance = revealDistance;
             LastCheckedZoneByPeer.Clear();
+            LogSkippedInvalidLocations("rebuild location icon candidate index", skippedInvalidLocations, firstInvalidZone, firstInvalidException);
             DebugLog($"Rebuilt location icon candidate index with {CandidatesByPlayerZone.Count} player zone(s).");
         }
 
@@ -217,16 +240,37 @@ namespace ServerSideTweaks.Features.Locations
 
         private static void SendLocationIcons(ZoneSystem zoneSystem, ZNetPeer peer)
         {
+            if (peer == null || !peer.IsReady())
+            {
+                return;
+            }
+
+            ZRoutedRpc? routedRpc = ZRoutedRpc.instance;
+            if (routedRpc == null)
+            {
+                LogSkippedLocationSend("ZRoutedRpc.instance is null");
+                return;
+            }
+
             PlayerIdentity identity = GetPlayerIdentity(peer);
             HashSet<string> discoveries = !string.IsNullOrWhiteSpace(identity.PlayerName)
                 ? GetDiscoveries(identity.PlayerName)
                 : new HashSet<string>(StringComparer.Ordinal);
             List<LocationIconCandidate> icons = new();
+            int skippedInvalidLocations = 0;
+            Vector2i? firstInvalidZone = null;
+            Exception? firstInvalidException = null;
 
             foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
-                string iconName = instance.m_location.m_prefab.Name;
+                if (!TryGetLocationIconName(instance, out string iconName, out Exception? iconNameException))
+                {
+                    skippedInvalidLocations++;
+                    firstInvalidZone ??= entry.Key;
+                    firstInvalidException ??= iconNameException;
+                    continue;
+                }
 
                 if (instance.m_location.m_iconAlways)
                 {
@@ -252,6 +296,8 @@ namespace ServerSideTweaks.Features.Locations
                 }
             }
 
+            LogSkippedInvalidLocations($"send location icons to peer {peer.m_uid}", skippedInvalidLocations, firstInvalidZone, firstInvalidException);
+
             ZPackage pkg = new();
             pkg.Write(icons.Count);
             foreach (LocationIconCandidate icon in icons)
@@ -260,12 +306,17 @@ namespace ServerSideTweaks.Features.Locations
                 pkg.Write(icon.IconName);
             }
 
-            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "LocationIcons", pkg);
+            routedRpc.InvokeRoutedRPC(peer.m_uid, "LocationIcons", pkg);
             DebugLog($"Sent {icons.Count} location icon(s) to peer {peer.m_uid}; player={(string.IsNullOrWhiteSpace(identity.PlayerName) ? "unknown" : $"{identity.PlayerName} ({identity.PlayerId})")}.");
         }
 
         private static bool IsPlacedRevealableIcon(ZoneSystem.LocationInstance instance, string iconName)
         {
+            if (instance.m_location == null)
+            {
+                return false;
+            }
+
             return instance.m_placed &&
                 instance.m_location.m_iconPlaced &&
                 !IsVanillaVendorLocationIcon(instance, iconName);
@@ -273,9 +324,67 @@ namespace ServerSideTweaks.Features.Locations
 
         private static bool IsVanillaVendorLocationIcon(ZoneSystem.LocationInstance instance, string iconName)
         {
+            if (instance.m_location == null)
+            {
+                return false;
+            }
+
             return instance.m_placed &&
                 instance.m_location.m_iconPlaced &&
                 VanillaVendorLocationIconNames.Contains(iconName);
+        }
+
+        private static bool TryGetLocationIconName(ZoneSystem.LocationInstance instance, out string iconName, out Exception? exception)
+        {
+            iconName = "";
+            exception = null;
+
+            if (instance.m_location == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                iconName = instance.m_location.m_prefab.Name;
+                return !string.IsNullOrWhiteSpace(iconName);
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+                return false;
+            }
+        }
+
+        private static void LogSkippedInvalidLocations(string operation, int skippedCount, Vector2i? firstInvalidZone, Exception? firstInvalidException)
+        {
+            if (skippedCount <= 0)
+            {
+                return;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            if (now - _lastInvalidLocationWarningTime < InvalidLocationWarningIntervalSeconds)
+            {
+                return;
+            }
+
+            _lastInvalidLocationWarningTime = now;
+            string zoneText = firstInvalidZone.HasValue ? $" First invalid zone: {firstInvalidZone.Value.x},{firstInvalidZone.Value.y}." : "";
+            string exceptionText = firstInvalidException != null ? $" First error: {firstInvalidException.Message}" : "";
+            ServerSideTweaksPlugin.ModLogger.LogWarning($"Skipped {skippedCount} invalid location instance(s) while trying to {operation}.{zoneText}{exceptionText}");
+        }
+
+        private static void LogSkippedLocationSend(string reason)
+        {
+            float now = Time.realtimeSinceStartup;
+            if (now - _lastInvalidLocationWarningTime < InvalidLocationWarningIntervalSeconds)
+            {
+                return;
+            }
+
+            _lastInvalidLocationWarningTime = now;
+            ServerSideTweaksPlugin.ModLogger.LogWarning($"Skipped per-player location icon send: {reason}.");
         }
 
         private static string BuildLocationKey(Vector2i zone, string iconName)
@@ -285,9 +394,14 @@ namespace ServerSideTweaks.Features.Locations
 
         private static ZNetPeer? FindPeer(ZRpc rpc)
         {
+            if (rpc == null || ZNet.instance == null)
+            {
+                return null;
+            }
+
             foreach (ZNetPeer peer in ZNet.instance.GetPeers())
             {
-                if (peer.m_rpc == rpc)
+                if (peer != null && peer.m_rpc == rpc)
                 {
                     return peer;
                 }
@@ -301,7 +415,7 @@ namespace ServerSideTweaks.Features.Locations
             long playerId = 0L;
             string playerName = "";
 
-            if (!peer.m_characterID.IsNone() && ZDOMan.instance != null)
+            if (peer != null && !peer.m_characterID.IsNone() && ZDOMan.instance != null)
             {
                 ZDO? playerZdo = ZDOMan.instance.GetZDO(peer.m_characterID);
                 if (playerZdo != null)
@@ -311,7 +425,7 @@ namespace ServerSideTweaks.Features.Locations
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(playerName))
+            if (peer != null && string.IsNullOrWhiteSpace(playerName))
             {
                 playerName = SanitizePlayerName(peer.m_playerName ?? "");
             }
