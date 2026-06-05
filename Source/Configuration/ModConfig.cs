@@ -36,6 +36,24 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
         internal static ConfigEntry<string> ValheimEnforcerBotApiKey = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerKickAlerts = null!;
+        internal static ConfigEntry<bool> EnableServerSigns = null!;
+        internal static ConfigEntry<int> ServerSignMaxCharacters = null!;
+        internal static ConfigEntry<float> ServerSignUpdateIntervalSeconds = null!;
+        internal static ConfigEntry<string> ServerSignCommand = null!;
+        internal static ConfigEntry<float> ServerSignScanRadius = null!;
+        internal static ConfigEntry<float> ServerSignCommandCooldownSeconds = null!;
+        internal static ConfigEntry<string> ServerSignRegistryFile = null!;
+        internal static ConfigEntry<string> ServerSignTextApiUrl = null!;
+        internal static ConfigEntry<string> ServerSignValheimEventsApiKey = null!;
+        internal static ConfigEntry<string> ServerSignResetDataFile = null!;
+        internal static ConfigEntry<float> ServerSignResetDataRefreshSeconds = null!;
+        internal static ConfigEntry<float> ServerSignResetSignRefreshSeconds = null!;
+        internal static ConfigEntry<float> ServerSignLeaderboardRefreshIntervalSeconds = null!;
+        internal static ConfigEntry<float> ServerSignPlayerSignRefreshIntervalSeconds = null!;
+        internal static ConfigEntry<int> ServerSignMaxWritesPerUpdate = null!;
+        internal static ConfigEntry<bool> ServerSignLogMetrics = null!;
+        internal static ConfigEntry<float> ServerSignMetricsLogIntervalSeconds = null!;
+        internal static ConfigEntry<bool> DebugServerSigns = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -230,6 +248,114 @@ namespace ServerSideTweaks
                 "DebugKickAlerts",
                 false,
                 "When true, logs ValheimEnforcer kick alert decisions and API results.");
+
+            EnableServerSigns = config.Bind(
+                "ServerSigns",
+                "EnableServerSigns",
+                false,
+                "When true, players can register supported sign commands with the server sign system.");
+
+            ServerSignMaxCharacters = config.Bind(
+                "ServerSigns",
+                "MaxCharacters",
+                1800,
+                "Maximum rich-text characters written to one server sign.");
+
+            ServerSignUpdateIntervalSeconds = config.Bind(
+                "ServerSigns",
+                "UpdateIntervalSeconds",
+                5.0f,
+                "Seconds between registered sign refresh checks. This does not scan for new signs.");
+
+            ServerSignCommand = config.Bind(
+                "ServerSigns",
+                "SignCommand",
+                "!sign",
+                "Chat command players use after placing sign commands. The server scans nearby signs once and registers supported signs.");
+
+            ServerSignScanRadius = config.Bind(
+                "ServerSigns",
+                "SignScanRadius",
+                25.0f,
+                "Meters around the player scanned when SignCommand is used.");
+
+            ServerSignCommandCooldownSeconds = config.Bind(
+                "ServerSigns",
+                "SignCommandCooldownSeconds",
+                15.0f,
+                "Minimum seconds between SignCommand uses per player.");
+
+            ServerSignRegistryFile = config.Bind(
+                "ServerSigns",
+                "RegistryFile",
+                "warpalicious.serverSideTweaks.serverSigns.json",
+                "Registered sign JSON file. Relative paths are resolved from the BepInEx config folder.");
+
+            ServerSignTextApiUrl = config.Bind(
+                "ServerSigns",
+                "SignTextApiUrl",
+                "https://valheim-events.vercel.app/api/sign-text?server=praetoris-s6",
+                "HTTP URL returning ValheimEvents sign text JSON for !leaderboard and !player signs.");
+
+            ServerSignValheimEventsApiKey = config.Bind(
+                "ServerSigns",
+                "ValheimEventsApiKey",
+                "",
+                "Shared secret sent to the ValheimEvents API in the X-API-Key header.");
+
+            ServerSignResetDataFile = config.Bind(
+                "ServerSigns",
+                "ResetDataFile",
+                "praetoris_resets.json",
+                "Reset state JSON file written by Cron Job. Relative paths are resolved from the BepInEx config folder.");
+
+            ServerSignResetDataRefreshSeconds = config.Bind(
+                "ServerSigns",
+                "ResetDataRefreshSeconds",
+                30.0f,
+                "Seconds between checks for changes to ResetDataFile.");
+
+            ServerSignResetSignRefreshSeconds = config.Bind(
+                "ServerSigns",
+                "ResetSignRefreshSeconds",
+                60.0f,
+                "Fallback seconds between refreshes for registered reset signs. Reset signs also refresh when ResetDataFile changes.");
+
+            ServerSignLeaderboardRefreshIntervalSeconds = config.Bind(
+                "ServerSigns",
+                "LeaderboardRefreshIntervalSeconds",
+                1800.0f,
+                "Seconds between leaderboard API checks. The API data normally changes once per day.");
+
+            ServerSignPlayerSignRefreshIntervalSeconds = config.Bind(
+                "ServerSigns",
+                "PlayerSignRefreshIntervalSeconds",
+                600.0f,
+                "Seconds between API refreshes for registered player stat signs.");
+
+            ServerSignMaxWritesPerUpdate = config.Bind(
+                "ServerSigns",
+                "MaxWritesPerUpdate",
+                20,
+                "Maximum server sign ZDO writes processed per server update frame.");
+
+            ServerSignLogMetrics = config.Bind(
+                "ServerSigns",
+                "LogMetrics",
+                true,
+                "When true, logs compact server sign performance metrics on MetricsLogIntervalSeconds.");
+
+            ServerSignMetricsLogIntervalSeconds = config.Bind(
+                "ServerSigns",
+                "MetricsLogIntervalSeconds",
+                300.0f,
+                "Seconds between server sign performance metric log lines when LogMetrics is true.");
+
+            DebugServerSigns = config.Bind(
+                "ServerSigns",
+                "DebugServerSigns",
+                false,
+                "When true, logs server sign scans and updates.");
         }
     }
 }
