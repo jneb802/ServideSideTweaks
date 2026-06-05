@@ -36,6 +36,23 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
         internal static ConfigEntry<string> ValheimEnforcerBotApiKey = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerKickAlerts = null!;
+        internal static ConfigEntry<bool> EnableAnnouncementBoards = null!;
+        internal static ConfigEntry<int> AnnouncementBoardMaxCharacters = null!;
+        internal static ConfigEntry<float> AnnouncementBoardUpdateIntervalSeconds = null!;
+        internal static ConfigEntry<string> AnnouncementBoardSignCommand = null!;
+        internal static ConfigEntry<float> AnnouncementBoardSignScanRadius = null!;
+        internal static ConfigEntry<float> AnnouncementBoardSignCommandCooldownSeconds = null!;
+        internal static ConfigEntry<string> AnnouncementBoardRegistryFile = null!;
+        internal static ConfigEntry<string> AnnouncementBoardSignTextApiUrl = null!;
+        internal static ConfigEntry<string> AnnouncementBoardResetDataFile = null!;
+        internal static ConfigEntry<float> AnnouncementBoardResetDataRefreshSeconds = null!;
+        internal static ConfigEntry<float> AnnouncementBoardResetSignRefreshSeconds = null!;
+        internal static ConfigEntry<float> AnnouncementBoardLeaderboardRefreshIntervalSeconds = null!;
+        internal static ConfigEntry<float> AnnouncementBoardPlayerSignRefreshIntervalSeconds = null!;
+        internal static ConfigEntry<int> AnnouncementBoardMaxWritesPerUpdate = null!;
+        internal static ConfigEntry<bool> AnnouncementBoardLogMetrics = null!;
+        internal static ConfigEntry<float> AnnouncementBoardMetricsLogIntervalSeconds = null!;
+        internal static ConfigEntry<bool> DebugAnnouncementBoards = null!;
 
         internal static void Bind(ConfigFile config)
         {
@@ -230,6 +247,108 @@ namespace ServerSideTweaks
                 "DebugKickAlerts",
                 false,
                 "When true, logs ValheimEnforcer kick alert decisions and API results.");
+
+            EnableAnnouncementBoards = config.Bind(
+                "AnnouncementBoards",
+                "EnableAnnouncementBoards",
+                false,
+                "When true, players can register supported sign commands with the announcement board system.");
+
+            AnnouncementBoardMaxCharacters = config.Bind(
+                "AnnouncementBoards",
+                "MaxCharacters",
+                1800,
+                "Maximum rich-text characters written to one announcement board sign.");
+
+            AnnouncementBoardUpdateIntervalSeconds = config.Bind(
+                "AnnouncementBoards",
+                "UpdateIntervalSeconds",
+                5.0f,
+                "Seconds between registered board refresh checks. This does not scan for new signs.");
+
+            AnnouncementBoardSignCommand = config.Bind(
+                "AnnouncementBoards",
+                "SignCommand",
+                "!sign",
+                "Chat command players use after placing sign commands. The server scans nearby signs once and registers supported signs.");
+
+            AnnouncementBoardSignScanRadius = config.Bind(
+                "AnnouncementBoards",
+                "SignScanRadius",
+                25.0f,
+                "Meters around the player scanned when SignCommand is used.");
+
+            AnnouncementBoardSignCommandCooldownSeconds = config.Bind(
+                "AnnouncementBoards",
+                "SignCommandCooldownSeconds",
+                15.0f,
+                "Minimum seconds between SignCommand uses per player.");
+
+            AnnouncementBoardRegistryFile = config.Bind(
+                "AnnouncementBoards",
+                "RegistryFile",
+                "warpalicious.serverSideTweaks.announcementBoards.tsv",
+                "Registered board TSV file. Relative paths are resolved from the BepInEx config folder.");
+
+            AnnouncementBoardSignTextApiUrl = config.Bind(
+                "AnnouncementBoards",
+                "SignTextApiUrl",
+                "https://valheim-events.vercel.app/api/sign-text?server=praetoris-s6",
+                "HTTP URL returning ValheimEvents sign text JSON for !leaderboard and !player signs.");
+
+            AnnouncementBoardResetDataFile = config.Bind(
+                "AnnouncementBoards",
+                "ResetDataFile",
+                "praetoris_resets.json",
+                "Reset state JSON file written by Cron Job. Relative paths are resolved from the BepInEx config folder.");
+
+            AnnouncementBoardResetDataRefreshSeconds = config.Bind(
+                "AnnouncementBoards",
+                "ResetDataRefreshSeconds",
+                30.0f,
+                "Seconds between checks for changes to ResetDataFile.");
+
+            AnnouncementBoardResetSignRefreshSeconds = config.Bind(
+                "AnnouncementBoards",
+                "ResetSignRefreshSeconds",
+                60.0f,
+                "Fallback seconds between refreshes for registered reset signs. Reset signs also refresh when ResetDataFile changes.");
+
+            AnnouncementBoardLeaderboardRefreshIntervalSeconds = config.Bind(
+                "AnnouncementBoards",
+                "LeaderboardRefreshIntervalSeconds",
+                1800.0f,
+                "Seconds between leaderboard API checks. The API data normally changes once per day.");
+
+            AnnouncementBoardPlayerSignRefreshIntervalSeconds = config.Bind(
+                "AnnouncementBoards",
+                "PlayerSignRefreshIntervalSeconds",
+                600.0f,
+                "Seconds between API refreshes for registered player stat signs.");
+
+            AnnouncementBoardMaxWritesPerUpdate = config.Bind(
+                "AnnouncementBoards",
+                "MaxWritesPerUpdate",
+                20,
+                "Maximum announcement board sign ZDO writes processed per server update frame.");
+
+            AnnouncementBoardLogMetrics = config.Bind(
+                "AnnouncementBoards",
+                "LogMetrics",
+                true,
+                "When true, logs compact announcement board performance metrics on MetricsLogIntervalSeconds.");
+
+            AnnouncementBoardMetricsLogIntervalSeconds = config.Bind(
+                "AnnouncementBoards",
+                "MetricsLogIntervalSeconds",
+                300.0f,
+                "Seconds between announcement board performance metric log lines when LogMetrics is true.");
+
+            DebugAnnouncementBoards = config.Bind(
+                "AnnouncementBoards",
+                "DebugAnnouncementBoards",
+                false,
+                "When true, logs announcement board scans and updates.");
         }
     }
 }

@@ -16,6 +16,7 @@ Author: warpalicious
 - Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
 - Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
 - Experimental pickable ownership handoff that consumes vanilla pick RPCs, transfers ownership to the picker, then replays the pick after a short delay.
+- Optional announcement boards: players can register supported sign commands and let the server rewrite those signs with live data.
 
 ## Prerequisites
 
@@ -69,6 +70,58 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | PickableOwnership | PickableOwnershipReplayAttempts | 2 | Maximum replay attempts for a consumed pick RPC. |
 | PickableOwnership | PickableOwnershipReplayRetrySeconds | 0.35 | Delay between replay attempts. |
 | PickableOwnership | DebugPickableOwnershipHandoff | false | Logs pickable handoff decisions for testing. |
+| AnnouncementBoards | EnableAnnouncementBoards | false | Enables server-managed sign command boards. |
+| AnnouncementBoards | MaxCharacters | 1800 | Maximum rich-text characters written to one board sign. |
+| AnnouncementBoards | UpdateIntervalSeconds | 5 | Seconds between registered board refresh checks. This does not discover new signs. |
+| AnnouncementBoards | SignCommand | !sign | Chat command players use to register nearby board signs. |
+| AnnouncementBoards | SignScanRadius | 25 | Meters around the player scanned when `SignCommand` is used. |
+| AnnouncementBoards | SignCommandCooldownSeconds | 15 | Minimum seconds between `SignCommand` uses per player. |
+| AnnouncementBoards | RegistryFile | warpalicious.serverSideTweaks.announcementBoards.tsv | Registered board TSV file under `BepInEx/config`. |
+| AnnouncementBoards | SignTextApiUrl | https://valheim-events.vercel.app/api/sign-text?server=praetoris-s6 | ValheimEvents API returning sign text JSON for leaderboard and player signs. |
+| AnnouncementBoards | ResetDataFile | praetoris_resets.json | Reset state JSON file written by Cron Job. |
+| AnnouncementBoards | ResetDataRefreshSeconds | 30 | Seconds between checks for changes to ResetDataFile. |
+| AnnouncementBoards | ResetSignRefreshSeconds | 60 | Fallback seconds between reset sign refreshes; reset signs also refresh when ResetDataFile changes. |
+| AnnouncementBoards | LeaderboardRefreshIntervalSeconds | 1800 | Seconds between leaderboard API checks. |
+| AnnouncementBoards | PlayerSignRefreshIntervalSeconds | 600 | Seconds between player stat sign API checks. |
+| AnnouncementBoards | MaxWritesPerUpdate | 20 | Maximum sign ZDO writes processed per server update frame. |
+| AnnouncementBoards | LogMetrics | true | Logs compact announcement board performance metrics. |
+| AnnouncementBoards | MetricsLogIntervalSeconds | 300 | Seconds between performance metric log lines when LogMetrics is true. |
+| AnnouncementBoards | DebugAnnouncementBoards | false | Logs board scan and update decisions. |
+
+## Announcement Boards
+
+When enabled, a player can place a normal Valheim sign, write a supported board command on
+the sign, then type `!sign` in chat while standing near it. The server consumes the `!sign`
+chat message, scans nearby signs once, records supported signs in the registry file, and
+replaces the sign text with generated server text. Board text is world state, so any player
+who can see the sign can read the same message.
+
+There is no automatic discovery scan during normal server updates. Existing registered
+boards still refresh on their configured source intervals, and unchanged text is skipped.
+
+Supported sign commands are `!leaderboard`, `!player`, and `!reset`. All options use
+`key=value` parameters. `size=1` is the default, and numeric sizes are clamped from `0.1`
+to `5`. `alignment=left` is the default; `center` and `right` are also supported. Names
+with spaces can be quoted. Generated stat rows are marked no-wrap so each generated row
+stays on its own line while scaling.
+
+```text
+!leaderboard board=deaths
+!leaderboard board=deaths size=1.2 alignment=center
+!player player=Taro
+!player player=Taro stat=deaths size=1.1 alignment=right
+!player player="Robin Goodfellow" stat=last-online alignment=left
+!reset
+!reset reset=copper size=2 alignment=center
+```
+
+Admin commands:
+
+```text
+sst_boards_scan
+sst_boards_leaderboard_example [playerName]
+sst_boards_sign_examples [nearPlayerName] [statsPlayerName]
+```
 
 ## Vendor Progress File
 
