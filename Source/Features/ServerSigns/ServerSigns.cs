@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using BepInEx;
+using Newtonsoft.Json;
 using ServerSideTweaks.Infrastructure.Routing;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -1247,7 +1248,7 @@ namespace ServerSideTweaks.Features.ServerSigns
 
             try
             {
-                ServerSignRegistryFile registry = JsonUtility.FromJson<ServerSignRegistryFile>(File.ReadAllText(path)) ?? new ServerSignRegistryFile();
+                ServerSignRegistryFile registry = ReadRegistryFile(path);
                 foreach (ServerSignRegistryEntry entry in registry.signs ?? new List<ServerSignRegistryEntry>())
                 {
                     if (entry == null ||
@@ -1299,7 +1300,18 @@ namespace ServerSideTweaks.Features.ServerSigns
                     createdAtUtc = sign.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
                 })
                 .ToList();
-            File.WriteAllText(path, JsonUtility.ToJson(registry, prettyPrint: true));
+            WriteRegistryFile(path, registry);
+        }
+
+        private static ServerSignRegistryFile ReadRegistryFile(string path)
+        {
+            return JsonConvert.DeserializeObject<ServerSignRegistryFile>(File.ReadAllText(path)) ?? new ServerSignRegistryFile();
+        }
+
+        private static void WriteRegistryFile(string path, ServerSignRegistryFile registry)
+        {
+            string json = JsonConvert.SerializeObject(registry, Formatting.Indented);
+            File.WriteAllText(path, json);
         }
 
         private static string ResolveRegistryPath()
