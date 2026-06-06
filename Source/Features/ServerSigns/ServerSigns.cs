@@ -594,12 +594,14 @@ namespace ServerSideTweaks.Features.ServerSigns
             Vector3 center = peer.GetRefPos();
             Vector3[] offsets =
             {
+                new(-5.6f, 0.0f, 3.2f),
                 new(-4.0f, 0.0f, 3.2f),
                 new(-2.4f, 0.0f, 3.2f),
                 new(-0.8f, 0.0f, 3.2f),
                 new(0.8f, 0.0f, 3.2f),
                 new(2.4f, 0.0f, 3.2f),
                 new(4.0f, 0.0f, 3.2f),
+                new(5.6f, 0.0f, 3.2f),
             };
             string[] claims =
             {
@@ -608,7 +610,9 @@ namespace ServerSideTweaks.Features.ServerSigns
                 "!player player=\"" + statsPlayer + "\" stat=deaths size=1.1 alignment=right",
                 "!player player=\"" + statsPlayer + "\" stat=last-online",
                 "!reset size=1.1 alignment=center",
-                "!reset reset=copper size=0.8",
+                "!reset reset=location biome=ashlands size=10",
+                "!reset reset=dungeon biome=ashlands",
+                "!reset reset=vegetation vegetation=copper size=0.8",
             };
 
             int created = 0;
@@ -667,7 +671,7 @@ namespace ServerSideTweaks.Features.ServerSigns
         private static bool TryWriteDynamicSignText(ZDO sign, DynamicSignCommand command)
         {
             if (string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase) &&
-                ResetDataFile.TryBuildSignText(command.Variant, command.Size, command.Alignment, out string resetText))
+                ResetDataFile.TryBuildSignText(command.Variant, command.Subject, command.Size, command.Alignment, out string resetText))
             {
                 QueueSignText(sign.m_uid, resetText, command.Source);
                 return true;
@@ -1038,9 +1042,32 @@ namespace ServerSideTweaks.Features.ServerSigns
             }
 
             string resetName = "summary";
+            string resetFilter = "";
             if (TryTakeParameter(parameters, "reset", out string rawReset))
             {
                 resetName = rawReset.Trim();
+            }
+
+            if (string.Equals(resetName, "location", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(resetName, "locations", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(resetName, "dungeon", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(resetName, "dungeons", StringComparison.OrdinalIgnoreCase))
+            {
+                if (TryTakeParameter(parameters, "biome", out string rawBiome))
+                {
+                    resetFilter = "biome=" + rawBiome.Trim();
+                }
+            }
+            else if (string.Equals(resetName, "vegetation", StringComparison.OrdinalIgnoreCase))
+            {
+                if (TryTakeParameter(parameters, "vegetation", out string rawVegetation))
+                {
+                    resetFilter = "vegetation=" + rawVegetation.Trim();
+                }
+            }
+            else if (parameters.ContainsKey("biome") || parameters.ContainsKey("vegetation"))
+            {
+                return false;
             }
 
             if (parameters.Count > 0 || string.IsNullOrWhiteSpace(resetName))
@@ -1048,7 +1075,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return false;
             }
 
-            command = DynamicSignCommand.Create("reset", resetName, "", scale, alignment);
+            command = DynamicSignCommand.Create("reset", resetName, resetFilter, scale, alignment);
             return true;
         }
 
@@ -1591,6 +1618,13 @@ namespace ServerSideTweaks.Features.ServerSigns
                 if (string.Equals(kind, "player", StringComparison.OrdinalIgnoreCase))
                 {
                     return "player " + variant + " " + subject;
+                }
+
+                if (string.Equals(kind, "reset", StringComparison.OrdinalIgnoreCase))
+                {
+                    return string.IsNullOrWhiteSpace(subject)
+                        ? "reset " + variant
+                        : "reset " + variant + " " + subject;
                 }
 
                 return kind;

@@ -102,7 +102,7 @@ refresh on their configured source intervals, and unchanged text is skipped.
 
 Supported sign commands are `!leaderboard`, `!player`, and `!reset`. All options use
 `key=value` parameters. `size=1` is the default, and numeric sizes are clamped from `0.1`
-to `5`. `alignment=left` is the default; `center` and `right` are also supported. Names
+to `10`. `alignment=left` is the default; `center` and `right` are also supported. Names
 with spaces can be quoted. Generated stat rows are marked no-wrap so each generated row
 stays on its own line while scaling.
 
@@ -113,7 +113,9 @@ stays on its own line while scaling.
 !player player=Taro stat=deaths size=1.1 alignment=right
 !player player="Robin Goodfellow" stat=last-online alignment=left
 !reset
-!reset reset=copper size=2 alignment=center
+!reset reset=location biome=meadows size=2 alignment=center
+!reset reset=dungeon biome=ashlands
+!reset reset=vegetation vegetation=copper
 ```
 
 Admin commands:

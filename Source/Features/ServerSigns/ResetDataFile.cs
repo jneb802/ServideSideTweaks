@@ -93,7 +93,7 @@ namespace ServerSideTweaks.Features.ServerSigns
             }
         }
 
-        internal static bool TryBuildSignText(string resetName, string size, string alignment, out string text)
+        internal static bool TryBuildSignText(string resetName, string resetFilter, string size, string alignment, out string text)
         {
             Update(force: false);
             string normalizedAlignment = SignTextAlignment.NormalizeOrDefault(alignment);
@@ -107,14 +107,69 @@ namespace ServerSideTweaks.Features.ServerSigns
             string trimmed = resetName.Trim();
             if (trimmed.Length > 0 && !trimmed.Equals("summary", StringComparison.OrdinalIgnoreCase))
             {
+                if (TryNormalizeCategory(trimmed, out string category))
+                {
+                    text = BuildCategoryText(snapshot, category, resetFilter, size, normalizedAlignment);
+                    return true;
+                }
+
                 text = snapshot.TryFind(trimmed, out ResetEntry entry)
                     ? RenderDetail(entry, size, normalizedAlignment)
                     : RenderMessage("World Resets", $"Unknown reset: {trimmed}", size, normalizedAlignment);
                 return true;
             }
 
-            text = RenderUpcoming(snapshot, size, normalizedAlignment);
+            text = RenderUpcoming(snapshot.Entries, "World Resets", "Location, dungeon, vegetation", size, normalizedAlignment);
             return true;
+        }
+
+        private static string BuildCategoryText(ResetDataSnapshot snapshot, string category, string resetFilter, string size, string alignment)
+        {
+            if (category == "vegetation" && string.IsNullOrWhiteSpace(resetFilter))
+            {
+                return snapshot.TryFind("vegetation", out ResetEntry vegetation)
+                    ? RenderDetail(vegetation, size, alignment)
+                    : RenderMessage("Vegetation Resets", "Unknown reset: vegetation", size, alignment);
+            }
+
+            if (TryParseFilter(resetFilter, out string filterName, out string filterValue))
+            {
+                if (category == "location" && filterName != "biome")
+                {
+                    return RenderMessage("Location Resets", "Use biome=<biome> with location resets.", size, alignment);
+                }
+
+                if (category == "dungeon" && filterName != "biome")
+                {
+                    return RenderMessage("Dungeon Resets", "Use biome=<biome> with dungeon resets.", size, alignment);
+                }
+
+                if (category == "vegetation" && filterName != "vegetation")
+                {
+                    return RenderMessage("Vegetation Resets", "Use vegetation=<key> with vegetation resets.", size, alignment);
+                }
+
+                return snapshot.TryFind(category, filterName, filterValue, out ResetEntry entry)
+                    ? RenderDetail(entry, size, alignment)
+                    : RenderMessage(CategoryTitle(category), $"Unknown {filterName}: {filterValue}", size, alignment);
+            }
+
+            if (!string.IsNullOrWhiteSpace(resetFilter))
+            {
+                return RenderMessage(CategoryTitle(category), $"Unknown reset filter: {resetFilter}", size, alignment);
+            }
+
+            List<ResetEntry> entries = snapshot.Entries
+                .Where(entry => string.Equals(entry.Category, category, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (entries.Count == 0 && category == "location" && snapshot.TryFind("locations", out ResetEntry legacyLocations))
+            {
+                return RenderDetail(legacyLocations, size, alignment);
+            }
+
+            return entries.Count > 0
+                ? RenderUpcoming(entries, CategoryTitle(category), CategorySubheading(category), size, alignment)
+                : RenderMessage(CategoryTitle(category), "No reset data found.", size, alignment);
         }
 
         private static ResetDataSnapshot? GetSnapshot(out string? lastError)
@@ -151,6 +206,9 @@ namespace ServerSideTweaks.Features.ServerSigns
                 string key = entryMatch.Groups["key"].Value;
                 string body = entryMatch.Groups["body"].Value;
                 string label = ReadString(body, "label") ?? key;
+                string category = ReadString(body, "category") ?? "";
+                string biome = ReadString(body, "biome") ?? "";
+                string vegetation = ReadString(body, "vegetation") ?? "";
                 DateTimeOffset? last = ReadDateTime(body, "last");
                 DateTimeOffset? next = ReadDateTime(body, "next");
                 double? intervalSeconds = ReadDouble(body, "interval_seconds");
@@ -160,7 +218,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                     next = last.Value.AddSeconds(intervalSeconds.Value);
                 }
 
-                entries[key] = new ResetEntry(key, label, last, next);
+                entries[key] = new ResetEntry(key, label, category, biome, vegetation, last, next);
             }
 
             if (entries.Count == 0)
@@ -171,9 +229,9 @@ namespace ServerSideTweaks.Features.ServerSigns
             return new ResetDataSnapshot(entries.Values, DateTimeOffset.UtcNow);
         }
 
-        private static string RenderUpcoming(ResetDataSnapshot snapshot, string size, string alignment)
+        private static string RenderUpcoming(IEnumerable<ResetEntry> resetEntries, string title, string subheading, string size, string alignment)
         {
-            List<ResetEntry> upcoming = snapshot.Entries
+            List<ResetEntry> upcoming = resetEntries
                 .Where(entry => entry.Next != null)
                 .OrderBy(entry => entry.Next)
                 .Take(5)
@@ -181,8 +239,8 @@ namespace ServerSideTweaks.Features.ServerSigns
 
             List<string> lines = new()
             {
-                Heading("World Resets", size, alignment),
-                Subheading("Vegetation + locations", size, alignment),
+                Heading(title, size, alignment),
+                Subheading(subheading, size, alignment),
             };
 
             if (upcoming.Count == 0)
@@ -257,6 +315,74 @@ namespace ServerSideTweaks.Features.ServerSigns
                 .Replace("Node", "")
                 .Replace("node", "")
                 .Trim();
+        }
+
+        private static bool TryNormalizeCategory(string value, out string category)
+        {
+            string normalized = NormalizeToken(value);
+            switch (normalized)
+            {
+                case "location":
+                case "locations":
+                    category = "location";
+                    return true;
+                case "dungeon":
+                case "dungeons":
+                    category = "dungeon";
+                    return true;
+                case "vegetation":
+                    category = "vegetation";
+                    return true;
+                default:
+                    category = "";
+                    return false;
+            }
+        }
+
+        private static bool TryParseFilter(string resetFilter, out string name, out string value)
+        {
+            name = "";
+            value = "";
+            string trimmed = resetFilter.Trim();
+            int separator = trimmed.IndexOf("=", StringComparison.Ordinal);
+            if (separator <= 0 || separator >= trimmed.Length - 1)
+            {
+                return false;
+            }
+
+            name = NormalizeToken(trimmed.Substring(0, separator));
+            value = trimmed.Substring(separator + 1).Trim();
+            return name.Length > 0 && value.Length > 0;
+        }
+
+        private static string CategoryTitle(string category)
+        {
+            switch (category)
+            {
+                case "location":
+                    return "Location Resets";
+                case "dungeon":
+                    return "Dungeon Resets";
+                case "vegetation":
+                    return "Vegetation Resets";
+                default:
+                    return "World Resets";
+            }
+        }
+
+        private static string CategorySubheading(string category)
+        {
+            switch (category)
+            {
+                case "location":
+                    return "By biome";
+                case "dungeon":
+                    return "Dungeons and forts";
+                case "vegetation":
+                    return "By resource";
+                default:
+                    return "Reset schedule";
+            }
         }
 
         private static string FormatRelative(DateTimeOffset? value, DateTimeOffset now)
@@ -375,6 +501,16 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return _entriesByAlias.TryGetValue(Normalize(query), out entry);
             }
 
+            internal bool TryFind(string category, string filterName, string filterValue, out ResetEntry entry)
+            {
+                string normalizedCategory = Normalize(category);
+                string normalizedFilterValue = Normalize(filterValue);
+                entry = Entries.FirstOrDefault(candidate =>
+                    Normalize(candidate.Category) == normalizedCategory &&
+                    Normalize(FilterValue(candidate, filterName)) == normalizedFilterValue);
+                return entry != null;
+            }
+
             private void AddAlias(string alias, ResetEntry entry)
             {
                 string normalized = Normalize(alias);
@@ -397,22 +533,46 @@ namespace ServerSideTweaks.Features.ServerSigns
             {
                 return new string(value.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
             }
+
+            private static string FilterValue(ResetEntry entry, string filterName)
+            {
+                switch (Normalize(filterName))
+                {
+                    case "biome":
+                        return entry.Biome;
+                    case "vegetation":
+                        return entry.Vegetation.Length > 0 ? entry.Vegetation : entry.Key;
+                    default:
+                        return "";
+                }
+            }
         }
 
         private sealed class ResetEntry
         {
-            internal ResetEntry(string key, string label, DateTimeOffset? last, DateTimeOffset? next)
+            internal ResetEntry(string key, string label, string category, string biome, string vegetation, DateTimeOffset? last, DateTimeOffset? next)
             {
                 Key = key;
                 Label = label;
+                Category = category;
+                Biome = biome;
+                Vegetation = vegetation;
                 Last = last;
                 Next = next;
             }
 
             internal string Key { get; }
             internal string Label { get; }
+            internal string Category { get; }
+            internal string Biome { get; }
+            internal string Vegetation { get; }
             internal DateTimeOffset? Last { get; }
             internal DateTimeOffset? Next { get; }
+        }
+
+        private static string NormalizeToken(string value)
+        {
+            return new string((value ?? "").Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
         }
     }
 }

@@ -7,7 +7,7 @@ namespace ServerSideTweaks.Features.ServerSigns
     {
         internal const string DefaultSourceValue = "1";
         private const float MinScale = 0.1f;
-        private const float MaxScale = 5.0f;
+        private const float MaxScale = 10.0f;
 
         internal static bool TryNormalize(string value, out string scale)
         {
