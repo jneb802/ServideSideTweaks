@@ -39,6 +39,7 @@ namespace ServerSideTweaks
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);
+            ValheimEnforcerGroupModPolicy.TryPatch(_harmony);
             ValheimEnforcerKickAlerts.TryPatch(_harmony);
             _configWatcher = new ConfigWatcher(Config, ModGUID, ModLogger);
             ModLogger.LogInfo($"{ModName} {ModVersion} loaded.");
