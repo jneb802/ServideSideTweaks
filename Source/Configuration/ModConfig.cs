@@ -36,6 +36,9 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
         internal static ConfigEntry<string> ValheimEnforcerBotApiKey = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerKickAlerts = null!;
+        internal static ConfigEntry<bool> EnableValheimEnforcerGroupModPolicy = null!;
+        internal static ConfigEntry<string> ValheimEnforcerGroupModPolicyFile = null!;
+        internal static ConfigEntry<bool> DebugValheimEnforcerGroupModPolicy = null!;
         internal static ConfigEntry<bool> EnableServerSigns = null!;
         internal static ConfigEntry<int> ServerSignMaxCharacters = null!;
         internal static ConfigEntry<float> ServerSignUpdateIntervalSeconds = null!;
@@ -248,6 +251,24 @@ namespace ServerSideTweaks
                 "DebugKickAlerts",
                 false,
                 "When true, logs ValheimEnforcer kick alert decisions and API results.");
+
+            EnableValheimEnforcerGroupModPolicy = config.Bind(
+                "ValheimEnforcer",
+                "EnableGroupModPolicy",
+                true,
+                "When true, server-side ValheimEnforcer validation allows configured mods only for configured player groups.");
+
+            ValheimEnforcerGroupModPolicyFile = config.Bind(
+                "ValheimEnforcer",
+                "GroupModPolicyFile",
+                "warpalicious.serverSideTweaks.valheimEnforcerGroups.yaml",
+                "YAML file for per-player ValheimEnforcer mod groups. Relative paths are resolved from the BepInEx config folder.");
+
+            DebugValheimEnforcerGroupModPolicy = config.Bind(
+                "ValheimEnforcer",
+                "DebugGroupModPolicy",
+                false,
+                "When true, logs ValheimEnforcer group mod policy decisions.");
 
             EnableServerSigns = config.Bind(
                 "ServerSigns",
