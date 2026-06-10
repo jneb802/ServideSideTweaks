@@ -255,7 +255,7 @@ namespace ServerSideTweaks
             EnableValheimEnforcerGroupModPolicy = config.Bind(
                 "ValheimEnforcer",
                 "EnableGroupModPolicy",
-                false,
+                true,
                 "When true, server-side ValheimEnforcer validation allows configured mods only for configured player groups.");
 
             ValheimEnforcerGroupModPolicyFile = config.Bind(

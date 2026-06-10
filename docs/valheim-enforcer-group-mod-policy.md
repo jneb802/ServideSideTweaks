@@ -11,6 +11,8 @@ GroupModPolicyFile = warpalicious.serverSideTweaks.valheimEnforcerGroups.yaml
 DebugGroupModPolicy = false
 ```
 
+`EnableGroupModPolicy` defaults to `true` for new generated configs. Existing config files keep their saved value until edited or regenerated.
+
 Policy file example:
 
 ```yaml
