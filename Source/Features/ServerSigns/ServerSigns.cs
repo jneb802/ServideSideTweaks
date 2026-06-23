@@ -673,8 +673,7 @@ namespace ServerSideTweaks.Features.ServerSigns
             if (string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase) &&
                 ResetDataFile.TryBuildSignText(command.Variant, command.Subject, command.Size, command.Alignment, out string resetText))
             {
-                QueueSignText(sign.m_uid, resetText, command.Source);
-                return true;
+                return QueueSignTextIfChanged(sign, resetText, command.Source);
             }
 
             if (!DynamicSignCaches.TryGetValue(command.Source, out DynamicSignCache cache) ||
@@ -683,8 +682,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return false;
             }
 
-            QueueSignText(sign.m_uid, cache.Text, command.Source);
-            return true;
+            return QueueSignTextIfChanged(sign, cache.Text, command.Source);
         }
 
         private static void WriteLoadingText(ZDO sign, DynamicSignCommand command)
@@ -706,6 +704,24 @@ namespace ServerSideTweaks.Features.ServerSigns
 
             PendingSignWrites[zdoId] = new PendingSignWrite(zdoId, clamped, source);
             Metrics.WritesQueued++;
+        }
+
+        private static bool QueueSignTextIfChanged(ZDO sign, string text, string source)
+        {
+            string clamped = ClampText(text);
+            string currentText = sign.GetString(ZDOVars.s_text, "");
+            string currentAuthor = sign.GetString(ZDOVars.s_author, "");
+            string currentDisplayName = sign.GetString(ZDOVars.s_authorDisplayName, "");
+            if (string.Equals(currentText, clamped, StringComparison.Ordinal) &&
+                string.Equals(currentAuthor, "", StringComparison.Ordinal) &&
+                string.Equals(currentDisplayName, ServerAuthorDisplayName, StringComparison.Ordinal))
+            {
+                Metrics.WritesSkipped++;
+                return false;
+            }
+
+            QueueSignText(sign.m_uid, clamped, source);
+            return true;
         }
 
         private static void ProcessPendingSignWrites()
@@ -831,10 +847,29 @@ namespace ServerSideTweaks.Features.ServerSigns
             EnsureRegistryLoaded();
             HashSet<string> refreshedSources = new(StringComparer.OrdinalIgnoreCase);
             List<ZDOID> unsupported = new();
+            List<ZDOID> missing = new();
+            int updated = 0;
             foreach (ServerSignRegistration sign in Signs.Values.ToList())
             {
                 if (TryGetDynamicSignCommand(sign, out DynamicSignCommand command))
                 {
+                    ZDO zdo = ZDOMan.instance.GetZDO(sign.ZdoId);
+                    if (zdo == null)
+                    {
+                        continue;
+                    }
+
+                    if (!zdo.IsValid() || zdo.GetPrefab() != SignPrefabHash)
+                    {
+                        missing.Add(sign.ZdoId);
+                        continue;
+                    }
+
+                    if (TryWriteDynamicSignText(zdo, command))
+                    {
+                        updated++;
+                    }
+
                     if (!refreshedSources.Add(command.Source))
                     {
                         Metrics.CacheHits++;
@@ -859,15 +894,27 @@ namespace ServerSideTweaks.Features.ServerSigns
                 }
             }
 
+            foreach (ZDOID id in missing)
+            {
+                Signs.Remove(id);
+            }
+
             foreach (ZDOID id in unsupported)
             {
                 Signs.Remove(id);
             }
 
-            if (unsupported.Count > 0)
+            if (missing.Count > 0 || unsupported.Count > 0)
             {
                 SaveRegistry();
             }
+
+            Metrics.RegisteredUpdated += updated;
+            DebugLog(
+                "Registered server sign refresh complete. registered=" + Signs.Count +
+                " textQueued=" + updated +
+                " missing=" + missing.Count +
+                " unsupported=" + unsupported.Count + ".");
         }
 
         private static IEnumerator FetchDynamicSignText(string baseUrl, DynamicSignCommand command)
@@ -1386,6 +1433,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 " scans=" + Metrics.Scans +
                 " scannedSigns=" + Metrics.ScannedSigns +
                 " dynamicClaimed=" + Metrics.DynamicClaimed +
+                " registeredUpdated=" + Metrics.RegisteredUpdated +
                 " scanMs=" + Metrics.ScanMs.ToString("0.##", CultureInfo.InvariantCulture) +
                 " resetChecks=" + Metrics.ResetFileChecks +
                 " resetChanged=" + Metrics.ResetFileChanged +
