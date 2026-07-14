@@ -77,13 +77,9 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | ServerSigns | SignScanRadius | 25 | Meters around the player scanned when `SignCommand` is used. |
 | ServerSigns | SignCommandCooldownSeconds | 15 | Minimum seconds between `SignCommand` uses per player. |
 | ServerSigns | RegistryFile | warpalicious.serverSideTweaks.serverSigns.json | Registered sign JSON file under `BepInEx/config`. |
-| ServerSigns | SignTextApiUrl | https://valheim-events.vercel.app/api/sign-text?server=praetoris-s6 | ValheimEvents API returning sign text JSON for leaderboard and player signs. |
-| ServerSigns | ValheimEventsApiKey |  | Shared secret sent to the ValheimEvents API in the `X-API-Key` header. |
 | ServerSigns | ResetDataFile | praetoris_resets.json | Reset state JSON file written by Cron Job. |
 | ServerSigns | ResetDataRefreshSeconds | 30 | Seconds between checks for changes to ResetDataFile. |
 | ServerSigns | ResetSignRefreshSeconds | 60 | Fallback seconds between reset sign refreshes; reset signs also refresh when ResetDataFile changes. |
-| ServerSigns | LeaderboardRefreshIntervalSeconds | 1800 | Seconds between leaderboard API checks. |
-| ServerSigns | PlayerSignRefreshIntervalSeconds | 600 | Seconds between player stat sign API checks. |
 | ServerSigns | MaxWritesPerUpdate | 20 | Maximum sign ZDO writes processed per server update frame. |
 | ServerSigns | LogMetrics | true | Logs compact server sign performance metrics. |
 | ServerSigns | MetricsLogIntervalSeconds | 300 | Seconds between performance metric log lines when LogMetrics is true. |
@@ -100,18 +96,11 @@ who can see the sign can read the same message.
 There is no automatic discovery scan during normal server updates. Registered signs still
 refresh on their configured source intervals, and unchanged text is skipped.
 
-Supported sign commands are `!leaderboard`, `!player`, and `!reset`. All options use
+Supported sign commands are `!reset`. Options use
 `key=value` parameters. `size=1` is the default, and numeric sizes are clamped from `0.1`
-to `10`. `alignment=left` is the default; `center` and `right` are also supported. Names
-with spaces can be quoted. Generated stat rows are marked no-wrap so each generated row
-stays on its own line while scaling.
+to `10`. `alignment=left` is the default; `center` and `right` are also supported.
 
 ```text
-!leaderboard board=deaths
-!leaderboard board=deaths size=1.2 alignment=center
-!player player=Taro
-!player player=Taro stat=deaths size=1.1 alignment=right
-!player player="Robin Goodfellow" stat=last-online alignment=left
 !reset
 !reset reset=location biome=meadows size=2 alignment=center
 !reset reset=dungeon biome=ashlands
@@ -122,8 +111,7 @@ Admin commands:
 
 ```text
 sst_signs_scan
-sst_signs_leaderboard_example [playerName]
-sst_signs_examples [nearPlayerName] [statsPlayerName]
+sst_signs_examples [nearPlayerName]
 ```
 
 ## Vendor Progress File
