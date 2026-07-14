@@ -46,13 +46,9 @@ namespace ServerSideTweaks
         internal static ConfigEntry<float> ServerSignScanRadius = null!;
         internal static ConfigEntry<float> ServerSignCommandCooldownSeconds = null!;
         internal static ConfigEntry<string> ServerSignRegistryFile = null!;
-        internal static ConfigEntry<string> ServerSignTextApiUrl = null!;
-        internal static ConfigEntry<string> ServerSignValheimEventsApiKey = null!;
         internal static ConfigEntry<string> ServerSignResetDataFile = null!;
         internal static ConfigEntry<float> ServerSignResetDataRefreshSeconds = null!;
         internal static ConfigEntry<float> ServerSignResetSignRefreshSeconds = null!;
-        internal static ConfigEntry<float> ServerSignLeaderboardRefreshIntervalSeconds = null!;
-        internal static ConfigEntry<float> ServerSignPlayerSignRefreshIntervalSeconds = null!;
         internal static ConfigEntry<int> ServerSignMaxWritesPerUpdate = null!;
         internal static ConfigEntry<bool> ServerSignLogMetrics = null!;
         internal static ConfigEntry<float> ServerSignMetricsLogIntervalSeconds = null!;
@@ -312,18 +308,6 @@ namespace ServerSideTweaks
                 "warpalicious.serverSideTweaks.serverSigns.json",
                 "Registered sign JSON file. Relative paths are resolved from the BepInEx config folder.");
 
-            ServerSignTextApiUrl = config.Bind(
-                "ServerSigns",
-                "SignTextApiUrl",
-                "https://valheim-events.vercel.app/api/sign-text?server=praetoris-s6",
-                "HTTP URL returning ValheimEvents sign text JSON for !leaderboard and !player signs.");
-
-            ServerSignValheimEventsApiKey = config.Bind(
-                "ServerSigns",
-                "ValheimEventsApiKey",
-                "",
-                "Shared secret sent to the ValheimEvents API in the X-API-Key header.");
-
             ServerSignResetDataFile = config.Bind(
                 "ServerSigns",
                 "ResetDataFile",
@@ -341,18 +325,6 @@ namespace ServerSideTweaks
                 "ResetSignRefreshSeconds",
                 60.0f,
                 "Fallback seconds between refreshes for registered reset signs. Reset signs also refresh when ResetDataFile changes.");
-
-            ServerSignLeaderboardRefreshIntervalSeconds = config.Bind(
-                "ServerSigns",
-                "LeaderboardRefreshIntervalSeconds",
-                1800.0f,
-                "Seconds between leaderboard API checks. The API data normally changes once per day.");
-
-            ServerSignPlayerSignRefreshIntervalSeconds = config.Bind(
-                "ServerSigns",
-                "PlayerSignRefreshIntervalSeconds",
-                600.0f,
-                "Seconds between API refreshes for registered player stat signs.");
 
             ServerSignMaxWritesPerUpdate = config.Bind(
                 "ServerSigns",

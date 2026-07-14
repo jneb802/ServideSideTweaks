@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -9,7 +8,6 @@ using BepInEx;
 using Newtonsoft.Json;
 using ServerSideTweaks.Infrastructure.Routing;
 using UnityEngine;
-using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 
 namespace ServerSideTweaks.Features.ServerSigns
@@ -19,24 +17,17 @@ namespace ServerSideTweaks.Features.ServerSigns
         private const string SignPrefabName = "sign";
         private const string SupportPrefabName = "wood_pole";
         private const string ServerAuthorDisplayName = "Server";
-        private const string LeaderboardCommand = "!leaderboard";
         private const string DynamicSource = "dynamic";
-        private const string LeaderboardDeaths = "deaths";
-        private const string PlayerSummary = "summary";
         private const string DefaultRegistryFileName = "warpalicious.serverSideTweaks.serverSigns.json";
-        private const string ValheimEventsApiKeyHeader = "X-API-Key";
         private static readonly int SignPrefabHash = SignPrefabName.GetStableHashCode();
         private static readonly Dictionary<ZDOID, ServerSignRegistration> Signs = new();
-        private static readonly Dictionary<string, DynamicSignCache> DynamicSignCaches = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly Dictionary<string, float> DynamicSignNextFetchTimes = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> DynamicSignFetchesInFlight = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, float> DynamicSignNextRefreshTimes = new(StringComparer.OrdinalIgnoreCase);
         private static readonly List<ZDO> SignScanBuffer = new();
         private static readonly Queue<ZDOID> PendingSignWriteOrder = new();
         private static readonly Dictionary<ZDOID, PendingSignWrite> PendingSignWrites = new();
         private static readonly Dictionary<long, float> NextPlayerSignCommandTimes = new();
         private static readonly ServerSignMetrics Metrics = new();
         private static float _nextUpdateTime;
-        private static float _nextLeaderboardWarningTime;
         private static float _nextMetricsLogTime;
         private static bool _registryLoaded;
 
@@ -45,11 +36,8 @@ namespace ServerSideTweaks.Features.ServerSigns
             Signs.Clear();
             SignScanBuffer.Clear();
             _nextUpdateTime = 0.0f;
-            _nextLeaderboardWarningTime = 0.0f;
             _registryLoaded = false;
-            DynamicSignCaches.Clear();
-            DynamicSignNextFetchTimes.Clear();
-            DynamicSignFetchesInFlight.Clear();
+            DynamicSignNextRefreshTimes.Clear();
             PendingSignWriteOrder.Clear();
             PendingSignWrites.Clear();
             NextPlayerSignCommandTimes.Clear();
@@ -68,18 +56,9 @@ namespace ServerSideTweaks.Features.ServerSigns
                 remoteCommand: true);
 
             new Terminal.ConsoleCommand(
-                "sst_signs_leaderboard_example",
-                "Creates a supported !leaderboard board=deaths sign near a connected player.",
-                args => CreateLeaderboardExampleSign(args.Length >= 2 ? args[1] : null),
-                onlyAdmin: true,
-                remoteCommand: true);
-
-            new Terminal.ConsoleCommand(
                 "sst_signs_examples",
-                "Creates supported !leaderboard board=deaths, !player, and !reset signs near a connected player.",
-                args => CreateDynamicSignExamples(
-                    args.Length >= 2 ? args[1] : null,
-                    args.Length >= 3 ? args[2] : null),
+                "Creates supported !reset signs near a connected player.",
+                args => CreateDynamicSignExamples(args.Length >= 2 ? args[1] : null),
                 onlyAdmin: true,
                 remoteCommand: true);
         }
@@ -251,9 +230,9 @@ namespace ServerSideTweaks.Features.ServerSigns
             {
                 ServerSideTweaksPlugin.ModLogger.LogInfo(
                     peer.m_playerName + " registered or refreshed " + result.TotalRegistered +
-                    " sign sign(s) with " + GetSignCommand() +
+                    " sign(s) with " + GetSignCommand() +
                     " near " + FormatVector(scanCenter) + ".");
-                return "Registered or refreshed " + result.TotalRegistered + " nearby sign sign(s).";
+                return "Registered or refreshed " + result.TotalRegistered + " nearby sign(s).";
             }
 
             if (result.ScannedSigns == 0)
@@ -261,7 +240,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return "No nearby signs found. Place a sign with a supported sign command, then run " + GetSignCommand() + ".";
             }
 
-            return "No supported sign commands found nearby. Edit a sign to !leaderboard board=deaths, !player player=<name>, or !reset, then run " + GetSignCommand() + ".";
+            return "No supported sign commands found nearby. Edit a sign to !reset, then run " + GetSignCommand() + ".";
         }
 
         private static void SendPrivateChatMessage(long targetPeerId, Vector3 position, UserInfo senderUserInfo, string text)
@@ -404,7 +383,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                     WriteLoadingText(sign, dynamicCommand);
                 }
 
-                MaybeFetchDynamicSign(dynamicCommand, force: false);
+                MaybeRefreshResetSign(dynamicCommand, force: false, resetDataChanged: false);
                 return true;
             }
 
@@ -438,7 +417,7 @@ namespace ServerSideTweaks.Features.ServerSigns
 
                 if (TryGetDynamicSignCommand(Signs[id], out DynamicSignCommand dynamicCommand))
                 {
-                    MaybeFetchDynamicSign(dynamicCommand, force: false);
+                    MaybeRefreshResetSign(dynamicCommand, force: false, resetDataChanged: false);
                     if (TryWriteDynamicSignText(zdo, dynamicCommand))
                     {
                         updated++;
@@ -512,63 +491,7 @@ namespace ServerSideTweaks.Features.ServerSigns
             return updated;
         }
 
-        private static string CreateLeaderboardExampleSign(string? playerName)
-        {
-            if (!IsServerReady())
-            {
-                return "Server signs are not ready: server ZDO systems are unavailable.";
-            }
-
-            ZNetPeer? peer = FindTargetPeer(playerName);
-            if (peer == null)
-            {
-                return string.IsNullOrWhiteSpace(playerName)
-                    ? "No connected player found for leaderboard sign."
-                    : $"No connected player named {playerName} found.";
-            }
-
-            GameObject signPrefab = ZNetScene.instance.GetPrefab(SignPrefabName);
-            GameObject supportPrefab = ZNetScene.instance.GetPrefab(SupportPrefabName);
-            if (signPrefab == null || supportPrefab == null)
-            {
-                return "Could not find Valheim sign or wood_pole prefab.";
-            }
-
-            Vector3 basePosition = peer.GetRefPos() + new Vector3(0.0f, 0.0f, 3.0f);
-            GameObject support = Object.Instantiate(supportPrefab, basePosition + new Vector3(0.0f, 0.5f, 0.0f), Quaternion.identity);
-            ZNetView supportView = support.GetComponent<ZNetView>();
-            ZDO? supportZdo = supportView != null ? supportView.GetZDO() : null;
-            if (supportZdo != null)
-            {
-                supportZdo.SetOwner(ZDOMan.GetSessionID());
-                ZDOMan.instance.ForceSendZDO(supportZdo.m_uid);
-            }
-            else
-            {
-                Object.Destroy(support);
-            }
-
-            GameObject instance = Object.Instantiate(
-                signPrefab,
-                basePosition + new Vector3(0.0f, 1.35f, -0.08f),
-                Quaternion.Euler(0.0f, 180.0f, 0.0f));
-            ZNetView nview = instance.GetComponent<ZNetView>();
-            ZDO? zdo = nview != null ? nview.GetZDO() : null;
-            if (zdo == null)
-            {
-                Object.Destroy(instance);
-                return "Could not create leaderboard sign ZDO.";
-            }
-
-            zdo.SetOwner(ZDOMan.GetSessionID());
-            zdo.Set(ZDOVars.s_text, LeaderboardCommand + " board=deaths");
-            zdo.Set(ZDOVars.s_author, "");
-            zdo.Set(ZDOVars.s_authorDisplayName, ServerAuthorDisplayName);
-            ZDOMan.instance.ForceSendZDO(zdo.m_uid);
-            return $"Created a supported {LeaderboardCommand} board=deaths sign near {peer.m_playerName}. Stand nearby and run {GetSignCommand()}, or run sst_signs_scan from the console.";
-        }
-
-        private static string CreateDynamicSignExamples(string? playerName, string? statsPlayerName)
+        private static string CreateDynamicSignExamples(string? playerName)
         {
             if (!IsServerReady())
             {
@@ -590,25 +513,16 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return "Could not find Valheim sign or wood_pole prefab.";
             }
 
-            string statsPlayer = string.IsNullOrWhiteSpace(statsPlayerName) ? "Taro" : statsPlayerName!.Trim();
             Vector3 center = peer.GetRefPos();
             Vector3[] offsets =
             {
-                new(-5.6f, 0.0f, 3.2f),
-                new(-4.0f, 0.0f, 3.2f),
                 new(-2.4f, 0.0f, 3.2f),
                 new(-0.8f, 0.0f, 3.2f),
                 new(0.8f, 0.0f, 3.2f),
                 new(2.4f, 0.0f, 3.2f),
-                new(4.0f, 0.0f, 3.2f),
-                new(5.6f, 0.0f, 3.2f),
             };
             string[] claims =
             {
-                "!leaderboard board=deaths alignment=center",
-                "!player player=\"" + statsPlayer + "\"",
-                "!player player=\"" + statsPlayer + "\" stat=deaths size=1.1 alignment=right",
-                "!player player=\"" + statsPlayer + "\" stat=last-online",
                 "!reset size=1.1 alignment=center",
                 "!reset reset=location biome=ashlands size=10",
                 "!reset reset=dungeon biome=ashlands",
@@ -655,7 +569,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 created++;
             }
 
-            return $"Created {created} dynamic sign command examples and {supportsCreated} wood_pole supports near {peer.m_playerName}. Stand nearby and run {GetSignCommand()}, or run sst_signs_scan from the console.";
+            return $"Created {created} reset sign command examples and {supportsCreated} wood_pole supports near {peer.m_playerName}. Stand nearby and run {GetSignCommand()}, or run sst_signs_scan from the console.";
         }
 
         private static void RegisterSign(ZDO sign, string source)
@@ -677,14 +591,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                 return true;
             }
 
-            if (!DynamicSignCaches.TryGetValue(command.Source, out DynamicSignCache cache) ||
-                string.IsNullOrWhiteSpace(cache.Text))
-            {
-                return false;
-            }
-
-            QueueSignText(sign.m_uid, cache.Text, command.Source);
-            return true;
+            return false;
         }
 
         private static void WriteLoadingText(ZDO sign, DynamicSignCommand command)
@@ -763,67 +670,22 @@ namespace ServerSideTweaks.Features.ServerSigns
             Metrics.WritesDone++;
         }
 
-        private static void MaybeFetchDynamicSign(DynamicSignCommand command, bool force)
-        {
-            if (string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase))
-            {
-                MaybeRefreshResetSign(command, force, resetDataChanged: false);
-                return;
-            }
-
-            string url = ModConfig.ServerSignTextApiUrl.Value?.Trim() ?? "";
-            if (!IsEnabled() || string.IsNullOrWhiteSpace(url) || DynamicSignFetchesInFlight.Contains(command.Source))
-            {
-                return;
-            }
-
-            float now = Time.realtimeSinceStartup;
-            float interval = GetDynamicSignRefreshInterval(command);
-            if (!force &&
-                DynamicSignNextFetchTimes.TryGetValue(command.Source, out float nextFetchTime) &&
-                now < nextFetchTime)
-            {
-                Metrics.CacheHits++;
-                return;
-            }
-
-            DynamicSignNextFetchTimes[command.Source] = now + interval;
-            DynamicSignFetchesInFlight.Add(command.Source);
-            Metrics.Fetches++;
-            ServerSideTweaksPlugin.Instance?.StartCoroutine(FetchDynamicSignText(url, command));
-        }
-
         private static void MaybeRefreshResetSign(DynamicSignCommand command, bool force, bool resetDataChanged)
         {
             float now = Time.realtimeSinceStartup;
             float interval = Mathf.Max(10.0f, ModConfig.ServerSignResetSignRefreshSeconds.Value);
             if (!force &&
                 !resetDataChanged &&
-                DynamicSignNextFetchTimes.TryGetValue(command.Source, out float nextRefreshTime) &&
+                DynamicSignNextRefreshTimes.TryGetValue(command.Source, out float nextRefreshTime) &&
                 now < nextRefreshTime)
             {
                 Metrics.CacheHits++;
                 return;
             }
 
-            DynamicSignNextFetchTimes[command.Source] = now + interval;
+            DynamicSignNextRefreshTimes[command.Source] = now + interval;
             int queued = UpdateDynamicSigns(command.Source);
-            DebugLog("Queued " + queued + " reset sign sign refresh(es) for " + command.DisplayName + ".");
-        }
-
-        private static float GetDynamicSignRefreshInterval(DynamicSignCommand command)
-        {
-            if (string.Equals(command.Kind, "leaderboard", StringComparison.OrdinalIgnoreCase))
-            {
-                return Mathf.Max(60.0f, ModConfig.ServerSignLeaderboardRefreshIntervalSeconds.Value);
-            }
-
-            if (string.Equals(command.Kind, "player", StringComparison.OrdinalIgnoreCase))
-            {
-                return Mathf.Max(60.0f, ModConfig.ServerSignPlayerSignRefreshIntervalSeconds.Value);
-            }
-
-            return Mathf.Max(60.0f, ModConfig.ServerSignLeaderboardRefreshIntervalSeconds.Value);
+            DebugLog("Queued " + queued + " reset sign refresh(es) for " + command.DisplayName + ".");
         }
 
         private static void RefreshRegisteredSigns(bool resetDataChanged)
@@ -841,14 +703,7 @@ namespace ServerSideTweaks.Features.ServerSigns
                         continue;
                     }
 
-                    if (string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase))
-                    {
-                        MaybeRefreshResetSign(command, force: false, resetDataChanged);
-                    }
-                    else
-                    {
-                        MaybeFetchDynamicSign(command, force: false);
-                    }
+                    MaybeRefreshResetSign(command, force: false, resetDataChanged);
 
                     continue;
                 }
@@ -868,99 +723,6 @@ namespace ServerSideTweaks.Features.ServerSigns
             {
                 SaveRegistry();
             }
-        }
-
-        private static IEnumerator FetchDynamicSignText(string baseUrl, DynamicSignCommand command)
-        {
-            try
-            {
-                using var request = UnityWebRequest.Get(BuildDynamicSignApiUrl(baseUrl, command));
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("User-Agent", "serverSideTweaks/1.1");
-                string apiKey = ModConfig.ServerSignValheimEventsApiKey.Value?.Trim() ?? "";
-                if (apiKey.Length > 0)
-                {
-                    request.SetRequestHeader(ValheimEventsApiKeyHeader, apiKey);
-                }
-
-                yield return request.SendWebRequest();
-
-                if (request.result != UnityWebRequest.Result.Success ||
-                    request.responseCode < 200 ||
-                    request.responseCode >= 300)
-                {
-                    string responseBody = request.downloadHandler?.text ?? "";
-                    LogLeaderboardWarning(
-                        "Dynamic sign fetch failed for " + command.Source + ": " + request.error +
-                        " HTTP " + request.responseCode + " " + responseBody);
-                    yield break;
-                }
-
-                DynamicSignApiResponse? apiResponse = null;
-                try
-                {
-                    apiResponse = JsonUtility.FromJson<DynamicSignApiResponse>(request.downloadHandler?.text ?? "");
-                }
-                catch (Exception ex)
-                {
-                    LogLeaderboardWarning("Dynamic sign fetch returned invalid JSON for " + command.Source + ": " + ex.Message);
-                    yield break;
-                }
-
-                string responseText = apiResponse?.text ?? "";
-                if (apiResponse == null || !apiResponse.ok || string.IsNullOrWhiteSpace(responseText))
-                {
-                    LogLeaderboardWarning("Dynamic sign fetch returned no usable text for " + command.Source + ".");
-                    yield break;
-                }
-
-                DynamicSignCache nextCache = new(command.Source, apiResponse.generatedAt ?? "", responseText);
-                if (DynamicSignCaches.TryGetValue(command.Source, out DynamicSignCache currentCache) &&
-                    string.Equals(currentCache.Text, nextCache.Text, StringComparison.Ordinal))
-                {
-                    DynamicSignCaches[command.Source] = nextCache;
-                    Metrics.CacheHits++;
-                    DebugLog("Dynamic sign text is unchanged for " + command.DisplayName + ".");
-                    yield break;
-                }
-
-                DynamicSignCaches[command.Source] = nextCache;
-                int updated = UpdateDynamicSigns(command.Source);
-                ServerSideTweaksPlugin.ModLogger.LogInfo("Updated " + updated + " dynamic sign sign(s) for " + command.DisplayName + ".");
-            }
-            finally
-            {
-                DynamicSignFetchesInFlight.Remove(command.Source);
-            }
-        }
-
-        private static string BuildDynamicSignApiUrl(string baseUrl, DynamicSignCommand command)
-        {
-            Dictionary<string, string> parameters = new(StringComparer.OrdinalIgnoreCase)
-            {
-                ["type"] = command.Kind,
-                ["size"] = command.Size,
-                ["alignment"] = command.Alignment,
-            };
-
-            if (string.Equals(command.Kind, "leaderboard", StringComparison.OrdinalIgnoreCase))
-            {
-                parameters["board"] = command.Variant;
-            }
-            else if (string.Equals(command.Kind, "player", StringComparison.OrdinalIgnoreCase))
-            {
-                parameters["stat"] = command.Variant;
-                parameters["player"] = command.Subject;
-            }
-
-            string url = baseUrl;
-            foreach (KeyValuePair<string, string> parameter in parameters)
-            {
-                string separator = url.IndexOf("?", StringComparison.Ordinal) >= 0 ? "&" : "?";
-                url += separator + Uri.EscapeDataString(parameter.Key) + "=" + Uri.EscapeDataString(parameter.Value);
-            }
-
-            return url;
         }
 
         private static string ClampText(string rendered)
@@ -989,7 +751,7 @@ namespace ServerSideTweaks.Features.ServerSigns
             }
 
             string verb = tokens[0].Trim().ToLowerInvariant();
-            if (verb != "!leaderboard" && verb != "!player" && verb != "!reset")
+            if (verb != "!reset")
             {
                 return false;
             }
@@ -999,46 +761,6 @@ namespace ServerSideTweaks.Features.ServerSigns
                 !TryReadAlignment(parameters, out string alignment))
             {
                 return false;
-            }
-
-            if (verb == "!leaderboard")
-            {
-                if (!TryTakeParameter(parameters, "board", out string boardType) ||
-                    !string.Equals(boardType.Trim(), LeaderboardDeaths, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-
-                if (parameters.Count > 0)
-                {
-                    return false;
-                }
-
-                command = DynamicSignCommand.Create("leaderboard", LeaderboardDeaths, "", scale, alignment);
-                return true;
-            }
-
-            if (verb == "!player")
-            {
-                if (!TryTakeParameter(parameters, "player", out string playerName))
-                {
-                    return false;
-                }
-
-                string stat = PlayerSummary;
-                if (TryTakeParameter(parameters, "stat", out string rawStat) &&
-                    !TryNormalizePlayerStat(rawStat, out stat))
-                {
-                    return false;
-                }
-
-                if (parameters.Count > 0 || string.IsNullOrWhiteSpace(playerName))
-                {
-                    return false;
-                }
-
-                command = DynamicSignCommand.Create("player", stat, playerName.Trim(), scale, alignment);
-                return true;
             }
 
             string resetName = "summary";
@@ -1087,15 +809,7 @@ namespace ServerSideTweaks.Features.ServerSigns
 
         private static bool IsSupportedDynamicSignCommand(DynamicSignCommand command)
         {
-            return IsSupportedLeaderboardCommand(command) ||
-                string.Equals(command.Kind, "player", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsSupportedLeaderboardCommand(DynamicSignCommand command)
-        {
-            return string.Equals(command.Kind, "leaderboard", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(command.Variant, LeaderboardDeaths, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(command.Kind, "reset", StringComparison.OrdinalIgnoreCase);
         }
 
         private static List<string> TokenizeCommand(string value)
@@ -1189,41 +903,6 @@ namespace ServerSideTweaks.Features.ServerSigns
 
             parameters.Remove(key);
             return true;
-        }
-
-        private static bool TryNormalizePlayerStat(string value, out string stat)
-        {
-            stat = PlayerSummary;
-            string normalized = (value ?? "")
-                .Trim()
-                .ToLowerInvariant()
-                .Replace("_", "-");
-            switch (normalized)
-            {
-                case PlayerSummary:
-                case "deaths":
-                case "last-online":
-                    stat = normalized;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static void LogLeaderboardWarning(string message)
-        {
-            float now = Time.realtimeSinceStartup;
-            float warningInterval = Mathf.Max(
-                300.0f,
-                ModConfig.ServerSignLeaderboardRefreshIntervalSeconds.Value);
-            if (now < _nextLeaderboardWarningTime)
-            {
-                DebugLog(message);
-                return;
-            }
-
-            _nextLeaderboardWarningTime = now + warningInterval;
-            ServerSideTweaksPlugin.ModLogger.LogWarning(message);
         }
 
         private static bool IsEnabled()
@@ -1390,7 +1069,6 @@ namespace ServerSideTweaks.Features.ServerSigns
                 " resetChecks=" + Metrics.ResetFileChecks +
                 " resetChanged=" + Metrics.ResetFileChanged +
                 " resetReadMs=" + Metrics.ResetFileReadMs.ToString("0.##", CultureInfo.InvariantCulture) +
-                " fetches=" + Metrics.Fetches +
                 " cacheHits=" + Metrics.CacheHits +
                 " writesQueued=" + Metrics.WritesQueued +
                 " writesDone=" + Metrics.WritesDone +
@@ -1448,20 +1126,6 @@ namespace ServerSideTweaks.Features.ServerSigns
             internal int TotalRegistered { get; }
         }
 
-        private sealed class DynamicSignCache
-        {
-            internal DynamicSignCache(string source, string generatedAt, string text)
-            {
-                Source = source;
-                GeneratedAt = generatedAt;
-                Text = text;
-            }
-
-            internal string Source { get; }
-            internal string GeneratedAt { get; }
-            internal string Text { get; }
-        }
-
         private sealed class PendingSignWrite
         {
             internal PendingSignWrite(ZDOID zdoId, string text, string source)
@@ -1486,7 +1150,6 @@ namespace ServerSideTweaks.Features.ServerSigns
             internal long ResetFileChecks;
             internal long ResetFileChanged;
             internal float ResetFileReadMs;
-            internal long Fetches;
             internal long CacheHits;
             internal long WritesQueued;
             internal long WritesDone;
@@ -1527,7 +1190,6 @@ namespace ServerSideTweaks.Features.ServerSigns
                 ResetFileChecks = 0;
                 ResetFileChanged = 0;
                 ResetFileReadMs = 0.0f;
-                Fetches = 0;
                 CacheHits = 0;
                 WritesQueued = 0;
                 WritesDone = 0;
@@ -1610,16 +1272,6 @@ namespace ServerSideTweaks.Features.ServerSigns
 
             private static string BuildDisplayName(string kind, string variant, string subject)
             {
-                if (string.Equals(kind, "leaderboard", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "leaderboard " + variant;
-                }
-
-                if (string.Equals(kind, "player", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "player " + variant + " " + subject;
-                }
-
                 if (string.Equals(kind, "reset", StringComparison.OrdinalIgnoreCase))
                 {
                     return string.IsNullOrWhiteSpace(subject)
@@ -1629,16 +1281,6 @@ namespace ServerSideTweaks.Features.ServerSigns
 
                 return kind;
             }
-        }
-
-        [Serializable]
-        private sealed class DynamicSignApiResponse
-        {
-            public bool ok = false;
-            public string type = "";
-            public string serverName = "";
-            public string generatedAt = "";
-            public string text = "";
         }
     }
 }
