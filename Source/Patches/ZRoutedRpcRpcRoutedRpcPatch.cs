@@ -29,6 +29,11 @@ namespace ServerSideTweaks.Patches
                     return false;
                 }
 
+                if (BossStoneTrophyPlacementBlock.TryBlockVisualItemRpc(rpcData))
+                {
+                    return false;
+                }
+
                 if (BossStoneTrophyPlacementBlock.TryBlockOwnershipRequest(rpcData))
                 {
                     return false;

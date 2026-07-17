@@ -9,6 +9,7 @@ namespace ServerSideTweaks.Features.BossStones
         private const string PlacementBlockedMessage = "You must build a boss stone to place trophy";
         private const string StartTempleLocationName = "StartTemple";
         private static readonly int RequestOwnHash = "RPC_RequestOwn".GetStableHashCode();
+        private static readonly int SetVisualItemHash = "SetVisualItem".GetStableHashCode();
 
         private static readonly int[] BossStonePrefabHashes =
         {
@@ -48,18 +49,7 @@ namespace ServerSideTweaks.Features.BossStones
                 }
 
                 ZDO? zdo = zdoMan.GetZDO(zdoId);
-                if (zdo != null)
-                {
-                    zdo.SetOwner(zdoMan.m_sessionID);
-                    zdo.Set(ZDOVars.s_item, "");
-                    zdo.Set(ZDOVars.s_type, 0, false);
-                    zdoMan.ForceSendZDO(zdoId);
-                }
-
-                if (ZRoutedRpc.instance != null)
-                {
-                    ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, zdoId, "SetVisualItem", "", 0, 1, 0);
-                }
+                ClearBossStoneAttachment(zdoMan, zdo, 0L);
             }
             catch (Exception ex)
             {
@@ -68,6 +58,51 @@ namespace ServerSideTweaks.Features.BossStones
 
             ServerSideTweaksPlugin.ModLogger.LogInfo($"Blocked boss-stone trophy ZDO item write. zdo={zdoId} item={value}");
             return false;
+        }
+
+        internal static bool TryBlockVisualItemRpc(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            if (rpcData.m_methodHash != SetVisualItemHash || !IsEnabledOnServer() || rpcData.m_targetZDO.IsNone())
+            {
+                return false;
+            }
+
+            ZDOMan? zdoMan = ZDOMan.instance;
+            if (zdoMan == null)
+            {
+                return false;
+            }
+
+            ZDO? zdo = zdoMan.GetZDO(rpcData.m_targetZDO);
+            if (zdo == null || !IsStartTempleBossStone(zdo))
+            {
+                return false;
+            }
+
+            string itemName = ReadSetVisualItemName(rpcData.m_parameters);
+            if (string.IsNullOrEmpty(itemName) || !BossTrophyNames.Contains(itemName))
+            {
+                return false;
+            }
+
+            try
+            {
+                ClearBossStoneAttachment(zdoMan, zdo, rpcData.m_senderPeerID);
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to clear boss-stone visual after blocking trophy placement: {ex}");
+            }
+
+            ZRoutedRpc.instance?.InvokeRoutedRPC(
+                rpcData.m_senderPeerID,
+                "ShowMessage",
+                (int)MessageHud.MessageType.Center,
+                PlacementBlockedMessage);
+
+            ServerSideTweaksPlugin.ModLogger.LogInfo(
+                $"Blocked boss-stone trophy visual RPC. zdo={rpcData.m_targetZDO} item={itemName} sender={rpcData.m_senderPeerID}");
+            return true;
         }
 
         internal static bool TryBlockOwnershipRequest(ZRoutedRpc.RoutedRPCData rpcData)
@@ -108,6 +143,43 @@ namespace ServerSideTweaks.Features.BossStones
             ServerSideTweaksPlugin.ModLogger.LogInfo(
                 $"Blocked boss-stone ownership request. zdo={rpcData.m_targetZDO} sender={rpcData.m_senderPeerID}");
             return true;
+        }
+
+        private static void ClearBossStoneAttachment(ZDOMan zdoMan, ZDO? zdo, long senderPeerId)
+        {
+            if (zdo == null)
+            {
+                return;
+            }
+
+            zdo.SetOwner(zdoMan.m_sessionID);
+            zdo.Set(ZDOVars.s_item, "");
+            zdo.Set(ZDOVars.s_variant, 0, false);
+            zdo.Set(ZDOVars.s_quality, 1, false);
+            zdo.Set(ZDOVars.s_type, 0, false);
+            zdo.DataRevision = Math.Max(zdo.DataRevision + 1000U, 1000U);
+
+            if (senderPeerId != 0L)
+            {
+                zdoMan.ForceSendZDO(senderPeerId, zdo.m_uid);
+            }
+
+            zdoMan.ForceSendZDO(zdo.m_uid);
+            ZRoutedRpc.instance?.InvokeRoutedRPC(ZRoutedRpc.Everybody, zdo.m_uid, "SetVisualItem", "", 0, 1, 0);
+        }
+
+        private static string ReadSetVisualItemName(ZPackage parameters)
+        {
+            try
+            {
+                ZPackage copy = new(parameters.GetArray());
+                return copy.ReadString();
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to read boss-stone SetVisualItem parameters: {ex}");
+                return "";
+            }
         }
 
         private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, string value)
