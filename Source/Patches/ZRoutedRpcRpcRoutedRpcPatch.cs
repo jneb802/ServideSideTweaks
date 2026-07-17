@@ -23,6 +23,12 @@ namespace ServerSideTweaks.Patches
                 rpcData.Deserialize(pkg);
                 pkg.SetPos(0);
 
+                BossLocationDiscoveryDiagnostics.LogIncomingRoutedRpc(rpcData);
+                if (BossLocationDiscoveryDiagnostics.TryHandleServerDiscoveryRequest(__instance, rpcData))
+                {
+                    return false;
+                }
+
                 BossStoneTrophyPlacementBlock.NotifyBlockedInteraction(rpcData);
                 return !BossMessage.TryConsumeIncomingRoutedRpc(rpcData);
             }

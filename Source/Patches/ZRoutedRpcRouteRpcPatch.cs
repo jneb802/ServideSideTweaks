@@ -1,4 +1,5 @@
 using HarmonyLib;
+using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Patches
@@ -10,6 +11,7 @@ namespace ServerSideTweaks.Patches
         [HarmonyBefore("redseiko.valheim.enroute")]
         private static bool Prefix(ZRoutedRpc.RoutedRPCData rpcData)
         {
+            BossLocationDiscoveryDiagnostics.LogRouteRpc(rpcData);
             return RoutedRpcDispatcher.Process(rpcData);
         }
     }

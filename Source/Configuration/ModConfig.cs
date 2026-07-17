@@ -32,6 +32,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
+        internal static ConfigEntry<bool> DebugBossLocationDiscovery = null!;
         internal static ConfigEntry<bool> EnableValheimEnforcerKickAlerts = null!;
         internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
         internal static ConfigEntry<string> ValheimEnforcerBotApiKey = null!;
@@ -223,6 +224,12 @@ namespace ServerSideTweaks
                 "EnableBossStoneTrophyPlacementBlock",
                 true,
                 "When true, prevents players from placing trophies on start-temple boss stones.");
+
+            DebugBossLocationDiscovery = config.Bind(
+                "BossStoneTrophies",
+                "DebugBossLocationDiscovery",
+                true,
+                "Temporary diagnostics. When true, logs boss runestone and vegvisir discovery RPCs, server handler execution, location lookup results, and boss-stone ownership RPCs.");
 
             EnableValheimEnforcerKickAlerts = config.Bind(
                 "ValheimEnforcer",

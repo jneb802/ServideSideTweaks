@@ -90,17 +90,6 @@ namespace ServerSideTweaks.Features.BossStones
                 PlacementBlockedMessage);
         }
 
-        internal static void NormalizeOwner(ZDO zdo, ref long owner)
-        {
-            if (!IsEnabledOnServer() || owner == ZDOMan.instance.m_sessionID || !IsStartTempleBossStone(zdo))
-            {
-                return;
-            }
-
-            ServerSideTweaksPlugin.ModLogger.LogInfo($"Kept start-temple boss stone server-owned. zdo={zdo.m_uid} requestedOwner={owner} pos={FormatVector(zdo.GetPosition())}");
-            owner = ZDOMan.instance.m_sessionID;
-        }
-
         private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, string value)
         {
             if (!IsEnabledOnServer() || hash != ZDOVars.s_item || string.IsNullOrEmpty(value) || !BossTrophyNames.Contains(value))
@@ -115,6 +104,11 @@ namespace ServerSideTweaks.Features.BossStones
         private static bool IsStartTempleBossStone(ZDO zdo)
         {
             return IsBossStonePrefab(zdo.GetPrefab()) && IsInsideStartTemple(zdo.GetPosition());
+        }
+
+        internal static bool IsBossStoneZdo(ZDO zdo)
+        {
+            return IsBossStonePrefab(zdo.GetPrefab());
         }
 
         private static bool IsBossStonePrefab(int prefabHash)
@@ -177,11 +171,6 @@ namespace ServerSideTweaks.Features.BossStones
                 ZNet.instance != null &&
                 ZNet.instance.IsServer() &&
                 ZDOMan.instance != null;
-        }
-
-        private static string FormatVector(Vector3 vector)
-        {
-            return $"{vector.x:0.0},{vector.y:0.0},{vector.z:0.0}";
         }
     }
 }

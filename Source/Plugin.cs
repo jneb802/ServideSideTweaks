@@ -13,6 +13,7 @@ using ServerSideTweaks.Features.Pickables;
 using ServerSideTweaks.Features.Trees;
 using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
+using ServerSideTweaks.Infrastructure;
 using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks
@@ -55,6 +56,7 @@ namespace ServerSideTweaks
 
         private void Update()
         {
+            HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
