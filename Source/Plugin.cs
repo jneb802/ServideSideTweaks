@@ -69,6 +69,7 @@ namespace ServerSideTweaks
             ServerSigns.ClearRuntimeCache();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
+            TreeOwnershipHandoff.ClearRuntimeCache();
             ServerSigns.RegisterRoutedRpcHandlers();
             BossMessage.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
