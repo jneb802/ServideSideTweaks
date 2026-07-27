@@ -7,8 +7,17 @@ namespace ServerSideTweaks.Features.Trees
 {
     internal static class TreeOwnershipHandoff
     {
+        private const float LastHandoffCleanupIntervalSeconds = 60.0f;
         private static readonly Dictionary<ZDOID, PendingHandoff> PendingHandoffs = new();
         private static readonly Dictionary<ZDOID, float> LastHandoffTimes = new();
+        private static float _nextLastHandoffCleanupTime;
+
+        internal static void ClearRuntimeCache()
+        {
+            PendingHandoffs.Clear();
+            LastHandoffTimes.Clear();
+            _nextLastHandoffCleanupTime = 0.0f;
+        }
 
         internal static void RegisterRoutedRpcHandlers()
         {
@@ -80,12 +89,19 @@ namespace ServerSideTweaks.Features.Trees
 
         internal static void Update()
         {
-            if (PendingHandoffs.Count == 0 || ZNet.instance == null || !ZNet.instance.IsServer() || ZDOMan.instance == null)
+            if (ZNet.instance == null || !ZNet.instance.IsServer() || ZDOMan.instance == null)
             {
                 return;
             }
 
             float now = Time.time;
+            CleanupLastHandoffTimes(now);
+
+            if (PendingHandoffs.Count == 0)
+            {
+                return;
+            }
+
             List<ZDOID> ready = new();
             foreach (KeyValuePair<ZDOID, PendingHandoff> entry in PendingHandoffs)
             {
@@ -131,6 +147,31 @@ namespace ServerSideTweaks.Features.Trees
             ZDOMan.instance.ForceSendZDO(zdoId);
             LastHandoffTimes[zdoId] = now;
             DebugLog($"Applied {currentKind} ownership handoff for {zdoId} to {handoff.Owner}.");
+        }
+
+        private static void CleanupLastHandoffTimes(float now)
+        {
+            if (LastHandoffTimes.Count == 0 || now < _nextLastHandoffCleanupTime)
+            {
+                return;
+            }
+
+            _nextLastHandoffCleanupTime = now + LastHandoffCleanupIntervalSeconds;
+            List<ZDOID> expiredZdoIds = new();
+            float cooldownSeconds = Mathf.Max(0.0f, ModConfig.TreeOwnershipHandoffCooldownSeconds.Value);
+
+            foreach (KeyValuePair<ZDOID, float> entry in LastHandoffTimes)
+            {
+                if (now - entry.Value >= cooldownSeconds || ZDOMan.instance.GetZDO(entry.Key) == null)
+                {
+                    expiredZdoIds.Add(entry.Key);
+                }
+            }
+
+            foreach (ZDOID zdoId in expiredZdoIds)
+            {
+                LastHandoffTimes.Remove(zdoId);
+            }
         }
 
         private static HitData ReadHitData(ZPackage parameters)
