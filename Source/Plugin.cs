@@ -22,7 +22,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.12";
+        private const string ModVersion = "1.1.13";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -58,6 +58,8 @@ namespace ServerSideTweaks
         {
             HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
+            StaleZdoOwnerCleanup.Update();
+            TemporaryOwnershipHandoffs.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
             ServerSigns.Update();
@@ -70,6 +72,8 @@ namespace ServerSideTweaks
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             TreeOwnershipHandoff.ClearRuntimeCache();
+            TemporaryOwnershipHandoffs.ClearRuntimeCache();
+            StaleZdoOwnerCleanup.ClearRuntimeCache();
             ServerSigns.RegisterRoutedRpcHandlers();
             BossMessage.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();

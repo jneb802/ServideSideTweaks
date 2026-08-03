@@ -22,6 +22,9 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> DebugHarvestOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
+        internal static ConfigEntry<float> OwnershipHandoffReleaseSeconds = null!;
+        internal static ConfigEntry<bool> EnableStaleZdoOwnerCleanup = null!;
+        internal static ConfigEntry<float> StaleZdoOwnerCleanupIntervalSeconds = null!;
         internal static ConfigEntry<bool> EnablePerPlayerLocationIcons = null!;
         internal static ConfigEntry<float> LocationIconRevealDistance = null!;
         internal static ConfigEntry<string> LocationIconDiscoveryFile = null!;
@@ -164,6 +167,24 @@ namespace ServerSideTweaks
                 "DebugFermenterOwnershipHandoff",
                 false,
                 "When true, logs fermenter ownership handoff decisions.");
+
+            OwnershipHandoffReleaseSeconds = config.Bind(
+                "OwnershipHandoff",
+                "OwnershipHandoffReleaseSeconds",
+                5.0f,
+                "Seconds after a ServerSideTweaks ownership handoff before the server releases that temporary ZDO owner if it is still unchanged.");
+
+            EnableStaleZdoOwnerCleanup = config.Bind(
+                "OwnershipHandoff",
+                "EnableStaleZdoOwnerCleanup",
+                true,
+                "When true, periodically removes owner records whose ZDO no longer exists.");
+
+            StaleZdoOwnerCleanupIntervalSeconds = config.Bind(
+                "OwnershipHandoff",
+                "StaleZdoOwnerCleanupIntervalSeconds",
+                60.0f,
+                "Seconds between stale ZDO owner cleanup scans.");
 
             EnablePerPlayerLocationIcons = config.Bind(
                 "LocationIcons",

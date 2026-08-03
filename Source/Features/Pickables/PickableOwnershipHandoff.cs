@@ -53,7 +53,15 @@ namespace ServerSideTweaks.Features.Pickables
                 }
 
                 int bonus = ReadBonus(rpcData.m_parameters);
-                target.SetOwner(rpcData.m_senderPeerID);
+                if (target.GetOwner() != rpcData.m_senderPeerID)
+                {
+                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID);
+                }
+                else
+                {
+                    TemporaryOwnershipHandoffs.RefreshIfTracked(rpcData.m_targetZDO, rpcData.m_senderPeerID);
+                }
+
                 zdoMan.ForceSendZDO(rpcData.m_senderPeerID, rpcData.m_targetZDO);
 
                 float firstReplayTime = Time.time + Mathf.Max(0.0f, ModConfig.PickableOwnershipReplayDelaySeconds.Value);
@@ -115,7 +123,11 @@ namespace ServerSideTweaks.Features.Pickables
 
             if (target.GetOwner() != pendingPick.Owner)
             {
-                target.SetOwner(pendingPick.Owner);
+                TemporaryOwnershipHandoffs.Assign(target, pendingPick.Owner);
+            }
+            else
+            {
+                TemporaryOwnershipHandoffs.RefreshIfTracked(zdoId, pendingPick.Owner);
             }
 
             ZDOMan.instance.ForceSendZDO(pendingPick.Owner, zdoId);

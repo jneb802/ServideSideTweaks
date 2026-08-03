@@ -66,9 +66,13 @@ namespace ServerSideTweaks.Features.Mining
 
                 if (target.GetOwner() != rpcData.m_senderPeerID)
                 {
-                    target.SetOwner(rpcData.m_senderPeerID);
+                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID);
                     zdoMan.ForceSendZDO(rpcData.m_senderPeerID, rpcData.m_targetZDO);
                     DebugLog($"Transferred {expectedKind} ownership for {rpcData.m_targetZDO} to {rpcData.m_senderPeerID}.");
+                }
+                else
+                {
+                    TemporaryOwnershipHandoffs.RefreshIfTracked(rpcData.m_targetZDO, rpcData.m_senderPeerID);
                 }
 
                 rpcData.m_targetPeerID = rpcData.m_senderPeerID;
