@@ -34,7 +34,7 @@ namespace ServerSideTweaks.Infrastructure
 
             if (target.GetOwner() != rpcData.m_senderPeerID)
             {
-                TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID, targetName);
+                TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID);
                 zdoMan.ForceSendZDO(rpcData.m_senderPeerID, rpcData.m_targetZDO);
                 debugLog($"Transferred {targetName} ownership for {rpcData.m_targetZDO} to {rpcData.m_senderPeerID}.");
             }

@@ -55,11 +55,6 @@ namespace ServerSideTweaks.Infrastructure
             {
                 ZDOExtraData.ReleaseOwner(zdoId);
             }
-
-            if (stale.Count > 0 && ModConfig.DebugStaleZdoOwnerCleanup.Value)
-            {
-                ServerSideTweaksPlugin.ModLogger.LogInfo($"Released {stale.Count} stale ZDO owner record(s); remaining owners={owners.Count}.");
-            }
         }
     }
 }

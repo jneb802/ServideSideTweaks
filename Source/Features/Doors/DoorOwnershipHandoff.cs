@@ -51,7 +51,7 @@ namespace ServerSideTweaks.Features.Doors
 
                 if (target.GetOwner() != rpcData.m_senderPeerID)
                 {
-                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID, "Door");
+                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID);
                     zdoMan.ForceSendZDO(rpcData.m_senderPeerID, rpcData.m_targetZDO);
                     DebugLog($"Transferred door ownership for {rpcData.m_targetZDO} to {rpcData.m_senderPeerID}.");
                 }

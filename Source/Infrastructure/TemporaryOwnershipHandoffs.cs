@@ -15,10 +15,10 @@ namespace ServerSideTweaks.Infrastructure
             _nextCleanupTime = 0.0f;
         }
 
-        internal static void Assign(ZDO zdo, long owner, string targetName)
+        internal static void Assign(ZDO zdo, long owner)
         {
             zdo.SetOwner(owner);
-            Track(zdo.m_uid, owner, targetName);
+            Track(zdo.m_uid, owner);
         }
 
         internal static void RefreshIfTracked(ZDOID zdoId, long owner)
@@ -28,7 +28,7 @@ namespace ServerSideTweaks.Infrastructure
                 return;
             }
 
-            Track(zdoId, owner, entry.TargetName);
+            Track(zdoId, owner);
         }
 
         internal static void Update()
@@ -62,10 +62,10 @@ namespace ServerSideTweaks.Infrastructure
             }
         }
 
-        private static void Track(ZDOID zdoId, long owner, string targetName)
+        private static void Track(ZDOID zdoId, long owner)
         {
             float releaseAfter = Time.time + Mathf.Max(0.1f, ModConfig.OwnershipHandoffReleaseSeconds.Value);
-            Entries[zdoId] = new Entry(owner, releaseAfter, targetName);
+            Entries[zdoId] = new Entry(owner, releaseAfter);
         }
 
         private static void Release(ZDOID zdoId)
@@ -81,7 +81,6 @@ namespace ServerSideTweaks.Infrastructure
             if (zdo == null)
             {
                 ZDOExtraData.ReleaseOwner(zdoId);
-                DebugLog($"Released stale {entry.TargetName} owner for missing ZDO {zdoId}.");
                 return;
             }
 
@@ -92,28 +91,17 @@ namespace ServerSideTweaks.Infrastructure
 
             zdo.SetOwner(0L);
             ZDOMan.instance.ForceSendZDO(zdoId);
-            DebugLog($"Released temporary {entry.TargetName} owner for {zdoId}.");
-        }
-
-        private static void DebugLog(string message)
-        {
-            if (ModConfig.DebugTemporaryOwnershipHandoffs.Value)
-            {
-                ServerSideTweaksPlugin.ModLogger.LogInfo(message);
-            }
         }
 
         private readonly struct Entry
         {
             internal readonly long Owner;
             internal readonly float ReleaseAfter;
-            internal readonly string TargetName;
 
-            internal Entry(long owner, float releaseAfter, string targetName)
+            internal Entry(long owner, float releaseAfter)
             {
                 Owner = owner;
                 ReleaseAfter = releaseAfter;
-                TargetName = targetName;
             }
         }
     }

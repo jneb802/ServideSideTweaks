@@ -55,7 +55,7 @@ namespace ServerSideTweaks.Features.Pickables
                 int bonus = ReadBonus(rpcData.m_parameters);
                 if (target.GetOwner() != rpcData.m_senderPeerID)
                 {
-                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID, "Pickable");
+                    TemporaryOwnershipHandoffs.Assign(target, rpcData.m_senderPeerID);
                 }
                 else
                 {
@@ -123,7 +123,7 @@ namespace ServerSideTweaks.Features.Pickables
 
             if (target.GetOwner() != pendingPick.Owner)
             {
-                TemporaryOwnershipHandoffs.Assign(target, pendingPick.Owner, "Pickable");
+                TemporaryOwnershipHandoffs.Assign(target, pendingPick.Owner);
             }
             else
             {

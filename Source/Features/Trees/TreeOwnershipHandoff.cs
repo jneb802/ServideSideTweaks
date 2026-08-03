@@ -151,7 +151,7 @@ namespace ServerSideTweaks.Features.Trees
                 return;
             }
 
-            TemporaryOwnershipHandoffs.Assign(target, handoff.Owner, currentKind.ToString());
+            TemporaryOwnershipHandoffs.Assign(target, handoff.Owner);
             ZDOMan.instance.ForceSendZDO(zdoId);
             LastHandoffTimes[zdoId] = now;
             DebugLog($"Applied {currentKind} ownership handoff for {zdoId} to {handoff.Owner}.");
