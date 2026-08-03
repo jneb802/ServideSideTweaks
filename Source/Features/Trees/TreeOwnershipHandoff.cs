@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ServerSideTweaks.Infrastructure;
 using UnityEngine;
 using ServerSideTweaks.Infrastructure.Routing;
 
@@ -45,8 +46,14 @@ namespace ServerSideTweaks.Features.Trees
             try
             {
                 ZDO? target = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(rpcData.m_targetZDO) : null;
-                if (target == null || target.GetOwner() == rpcData.m_senderPeerID)
+                if (target == null)
                 {
+                    return;
+                }
+
+                if (target.GetOwner() == rpcData.m_senderPeerID)
+                {
+                    TemporaryOwnershipHandoffs.RefreshIfTracked(rpcData.m_targetZDO, rpcData.m_senderPeerID);
                     return;
                 }
 
@@ -129,6 +136,7 @@ namespace ServerSideTweaks.Features.Trees
 
             if (target.GetOwner() == handoff.Owner)
             {
+                TemporaryOwnershipHandoffs.RefreshIfTracked(zdoId, handoff.Owner);
                 return;
             }
 
@@ -143,7 +151,7 @@ namespace ServerSideTweaks.Features.Trees
                 return;
             }
 
-            target.SetOwner(handoff.Owner);
+            TemporaryOwnershipHandoffs.Assign(target, handoff.Owner, currentKind.ToString());
             ZDOMan.instance.ForceSendZDO(zdoId);
             LastHandoffTimes[zdoId] = now;
             DebugLog($"Applied {currentKind} ownership handoff for {zdoId} to {handoff.Owner}.");
