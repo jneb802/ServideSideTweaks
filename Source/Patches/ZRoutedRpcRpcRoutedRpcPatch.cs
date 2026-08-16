@@ -29,7 +29,16 @@ namespace ServerSideTweaks.Patches
                     return false;
                 }
 
-                BossStoneTrophyPlacementBlock.NotifyBlockedInteraction(rpcData);
+                if (BossStoneTrophyPlacementBlock.TryBlockVisualItemRpc(rpcData))
+                {
+                    return false;
+                }
+
+                if (BossStoneTrophyPlacementBlock.TryBlockOwnershipRequest(rpcData))
+                {
+                    return false;
+                }
+
                 return !BossMessage.TryConsumeIncomingRoutedRpc(rpcData);
             }
             catch (System.Exception ex)
