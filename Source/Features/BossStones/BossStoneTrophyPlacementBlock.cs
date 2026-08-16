@@ -70,17 +70,33 @@ namespace ServerSideTweaks.Features.BossStones
             return false;
         }
 
-        internal static void NotifyBlockedInteraction(ZRoutedRpc.RoutedRPCData rpcData)
+        internal static bool TryBlockOwnershipRequest(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (rpcData.m_methodHash != RequestOwnHash || !IsEnabledOnServer() || rpcData.m_targetZDO.IsNone())
             {
-                return;
+                return false;
             }
 
-            ZDO? zdo = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(rpcData.m_targetZDO) : null;
+            ZDOMan? zdoMan = ZDOMan.instance;
+            if (zdoMan == null)
+            {
+                return false;
+            }
+
+            ZDO? zdo = zdoMan.GetZDO(rpcData.m_targetZDO);
             if (zdo == null || !IsStartTempleBossStone(zdo))
             {
-                return;
+                return false;
+            }
+
+            try
+            {
+                zdo.SetOwner(zdoMan.m_sessionID);
+                zdoMan.ForceSendZDO(rpcData.m_targetZDO);
+            }
+            catch (Exception ex)
+            {
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to retain boss-stone ownership after blocking trophy placement: {ex}");
             }
 
             ZRoutedRpc.instance?.InvokeRoutedRPC(
@@ -88,6 +104,10 @@ namespace ServerSideTweaks.Features.BossStones
                 "ShowMessage",
                 (int)MessageHud.MessageType.Center,
                 PlacementBlockedMessage);
+
+            ServerSideTweaksPlugin.ModLogger.LogInfo(
+                $"Blocked boss-stone ownership request. zdo={rpcData.m_targetZDO} sender={rpcData.m_senderPeerID}");
+            return true;
         }
 
         private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, string value)
