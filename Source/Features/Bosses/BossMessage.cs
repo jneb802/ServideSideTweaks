@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using ServerSideTweaks.Infrastructure;
 using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Features.Bosses
 {
     internal static class BossMessage
     {
-        private static readonly int ShowMessageHash = "ShowMessage".GetStableHashCode();
+        private static readonly int ShowMessageHash = StableHash.Compute("ShowMessage");
 
         private static readonly HashSet<string> BlockedBossMessages = new()
         {

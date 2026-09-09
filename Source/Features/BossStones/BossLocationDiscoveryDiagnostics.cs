@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using ServerSideTweaks.Infrastructure;
 using UnityEngine;
 
 namespace ServerSideTweaks.Features.BossStones
@@ -12,10 +13,10 @@ namespace ServerSideTweaks.Features.BossStones
         private const string RequestOwnRpc = "RPC_RequestOwn";
         private const string SetVisualItemRpc = "SetVisualItem";
 
-        private static readonly int DiscoverClosestLocationHash = DiscoverClosestLocationRpc.GetStableHashCode();
-        private static readonly int DiscoverLocationResponseHash = DiscoverLocationResponseRpc.GetStableHashCode();
-        private static readonly int RequestOwnHash = RequestOwnRpc.GetStableHashCode();
-        private static readonly int SetVisualItemHash = SetVisualItemRpc.GetStableHashCode();
+        private static readonly int DiscoverClosestLocationHash = StableHash.Compute(DiscoverClosestLocationRpc);
+        private static readonly int DiscoverLocationResponseHash = StableHash.Compute(DiscoverLocationResponseRpc);
+        private static readonly int RequestOwnHash = StableHash.Compute(RequestOwnRpc);
+        private static readonly int SetVisualItemHash = StableHash.Compute(SetVisualItemRpc);
         private static readonly System.Reflection.MethodInfo? HandleRoutedRpcMethod =
             AccessTools.Method(typeof(ZRoutedRpc), "HandleRoutedRPC");
         private static List<ZoneSystem.LocationInstance> TempLocations = new();

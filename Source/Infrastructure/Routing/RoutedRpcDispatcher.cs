@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ServerSideTweaks.Infrastructure;
 
 namespace ServerSideTweaks.Infrastructure.Routing
 {
@@ -22,7 +23,7 @@ namespace ServerSideTweaks.Infrastructure.Routing
 
         internal static void Register(string methodName, RoutedRpcHandler handler)
         {
-            int methodHash = methodName.GetStableHashCode();
+            int methodHash = StableHash.Compute(methodName);
             if (!Handlers.TryGetValue(methodHash, out List<RoutedRpcHandler> handlers))
             {
                 handlers = new List<RoutedRpcHandler>();
