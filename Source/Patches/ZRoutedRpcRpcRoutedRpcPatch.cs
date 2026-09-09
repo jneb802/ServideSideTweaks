@@ -1,6 +1,7 @@
 using HarmonyLib;
 using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Features.Bosses;
+using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Patches
 {
@@ -30,7 +31,42 @@ namespace ServerSideTweaks.Patches
                 }
 
                 BossStoneTrophyPlacementBlock.NotifyBlockedInteraction(rpcData);
-                return !BossMessage.TryConsumeIncomingRoutedRpc(rpcData);
+                if (BossStoneTrophyPlacementBlock.TryConsumeVisualItem(rpcData))
+                {
+                    return false;
+                }
+                if (BossMessage.TryConsumeIncomingRoutedRpc(rpcData))
+                {
+                    return false;
+                }
+
+                if (rpcData.m_targetPeerID != __instance.m_id || rpcData.m_targetZDO.IsNone())
+                {
+                    return true;
+                }
+
+                // Server-addressed object calls never enter RouteRPC. Apply the
+                // same handlers here, before vanilla attempts local delivery.
+                if (!RoutedRpcDispatcher.Process(rpcData))
+                {
+                    return false;
+                }
+
+                if (rpcData.m_targetPeerID == __instance.m_id)
+                {
+                    return true;
+                }
+
+                // Forward the rewritten call once, preserving its original sender.
+                // Calling RouteRPC here would run the ownership handlers twice.
+                ZNetPeer targetPeer = __instance.GetPeer(rpcData.m_targetPeerID);
+                if (targetPeer != null && targetPeer.IsReady())
+                {
+                    ZPackage forwarded = new();
+                    rpcData.Serialize(forwarded);
+                    targetPeer.m_rpc.Invoke("RoutedRPC", forwarded);
+                }
+                return false;
             }
             catch (System.Exception ex)
             {
