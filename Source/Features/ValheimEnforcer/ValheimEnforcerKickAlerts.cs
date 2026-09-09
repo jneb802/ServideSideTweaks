@@ -192,21 +192,28 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             string alertUrl = ModConfig.ValheimEnforcerKickAlertBotUrl.Value.Trim();
             if (string.IsNullOrWhiteSpace(alertUrl))
             {
-                DebugLog("Kick alert bot URL is not configured.");
+                ServerSideTweaksPlugin.ModLogger.LogWarning(
+                    "ValheimEnforcer kick alerts are enabled, but KickAlertBotUrl is not configured.");
                 yield break;
             }
 
-            string body = BuildBotAlertBody(report);
+            bool isDiscordWebhook = IsDiscordWebhookUrl(alertUrl);
+            string body = isDiscordWebhook
+                ? BuildDiscordWebhookBody(report)
+                : BuildBotAlertBody(report);
             using var request = new UnityWebRequest(alertUrl, "POST")
             {
                 uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body)),
                 downloadHandler = new DownloadHandlerBuffer()
             };
             request.SetRequestHeader("Content-Type", "application/json");
-            string apiKey = ModConfig.ValheimEnforcerBotApiKey.Value.Trim();
-            if (!string.IsNullOrWhiteSpace(apiKey))
+            if (!isDiscordWebhook)
             {
-                request.SetRequestHeader("X-API-Key", apiKey);
+                string apiKey = ModConfig.ValheimEnforcerBotApiKey.Value.Trim();
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    request.SetRequestHeader("X-API-Key", apiKey);
+                }
             }
             request.SetRequestHeader("User-Agent", "serverSideTweaks/1.1");
 
@@ -218,13 +225,146 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             {
                 string response = request.downloadHandler?.text ?? "";
                 ServerSideTweaksPlugin.ModLogger.LogWarning(
-                    "ValheimEnforcer bot kick alert failed: " + request.error +
+                    "ValheimEnforcer kick alert failed: " + request.error +
                     " HTTP " + request.responseCode + " " + response);
             }
             else
             {
                 DebugLog("Sent ValheimEnforcer kick alert for " + report.DescribePlayer() + ".");
             }
+        }
+
+        private static bool IsDiscordWebhookUrl(string alertUrl)
+        {
+            if (!Uri.TryCreate(alertUrl, UriKind.Absolute, out Uri? uri) ||
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            bool isDiscordHost = string.Equals(uri.Host, "discord.com", StringComparison.OrdinalIgnoreCase) ||
+                                 uri.Host.EndsWith(".discord.com", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(uri.Host, "discordapp.com", StringComparison.OrdinalIgnoreCase) ||
+                                 uri.Host.EndsWith(".discordapp.com", StringComparison.OrdinalIgnoreCase);
+            return isDiscordHost &&
+                   uri.AbsolutePath.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildDiscordWebhookBody(ValidationReport report)
+        {
+            string playerName = string.IsNullOrWhiteSpace(report.PlayerName)
+                ? "A player"
+                : report.PlayerName.Trim();
+            string content = playerName + " failed to join the server because of a mod mismatch:";
+            string description = BuildDiscordDescription(report);
+            if (description.Length > 3900)
+            {
+                description = description.Substring(0, 3900);
+            }
+
+            StringBuilder builder = new StringBuilder();
+            builder.Append("{");
+            AppendJsonProperty(builder, "content", content);
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                builder.Append(",\"embeds\":[{");
+                AppendJsonProperty(builder, "description", description);
+                builder.Append(",\"color\":15158332}]");
+            }
+
+            builder.Append(",\"allowed_mentions\":{\"parse\":[]}}");
+            return builder.ToString();
+        }
+
+        private static string BuildDiscordDescription(ValidationReport report)
+        {
+            StringBuilder builder = new StringBuilder();
+            AppendDiscordIssueBlock(builder, "Remove these mods", report.ExtraMods, "remove");
+            AppendDiscordIssueBlock(builder, "Change these mods", report.VersionMismatches, "change");
+            AppendDiscordIssueBlock(builder, "Add these mods", report.MissingRequiredMods, "add");
+            return builder.ToString();
+        }
+
+        private static void AppendDiscordIssueBlock(
+            StringBuilder builder,
+            string title,
+            IReadOnlyList<ModIssue> issues,
+            string issueType)
+        {
+            if (issues.Count == 0)
+            {
+                return;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append("\n\n");
+            }
+
+            builder.Append("**");
+            builder.Append(title);
+            builder.Append("**\n");
+            if (string.Equals(issueType, "change", StringComparison.Ordinal))
+            {
+                builder.Append("Current version --> required version\n");
+            }
+
+            int issueCount = Math.Min(issues.Count, 12);
+            for (int i = 0; i < issueCount; i++)
+            {
+                ModIssue issue = issues[i];
+                builder.Append("- ");
+                builder.Append(FormatDiscordMod(issue));
+                if (string.Equals(issueType, "change", StringComparison.Ordinal))
+                {
+                    builder.Append(": `");
+                    builder.Append(string.IsNullOrWhiteSpace(issue.ActualVersion) ? "unknown" : issue.ActualVersion);
+                    builder.Append("` --> `");
+                    builder.Append(string.IsNullOrWhiteSpace(issue.ExpectedVersion) ? "unknown" : issue.ExpectedVersion);
+                    builder.Append("`");
+                }
+                else if (string.Equals(issueType, "add", StringComparison.Ordinal))
+                {
+                    string expectedVersion = !string.IsNullOrWhiteSpace(issue.ExpectedVersion)
+                        ? issue.ExpectedVersion
+                        : !string.IsNullOrWhiteSpace(issue.PackageVersion)
+                            ? issue.PackageVersion
+                            : "unknown";
+                    builder.Append(" `");
+                    builder.Append(expectedVersion);
+                    builder.Append("`");
+                }
+
+                builder.Append("\n");
+            }
+
+            if (issues.Count > issueCount)
+            {
+                builder.Append("- ...and ");
+                builder.Append(issues.Count - issueCount);
+                builder.Append(" more\n");
+            }
+        }
+
+        private static string FormatDiscordMod(ModIssue issue)
+        {
+            string label = !string.IsNullOrWhiteSpace(issue.Name)
+                ? issue.Name
+                : !string.IsNullOrWhiteSpace(issue.PluginId)
+                    ? issue.PluginId
+                    : "unknown";
+            if (issue.ThunderstoreVersionUrl.StartsWith("https://thunderstore.io/", StringComparison.Ordinal) ||
+                issue.ThunderstoreVersionUrl.StartsWith("https://new.thunderstore.io/", StringComparison.Ordinal))
+            {
+                return "[" + EscapeMarkdownLinkLabel(label) + "](" + issue.ThunderstoreVersionUrl + ")";
+            }
+
+            return "`" + label.Replace("`", "") + "`";
+        }
+
+        private static string EscapeMarkdownLinkLabel(string value)
+        {
+            return value.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
         }
 
         private static string BuildBotAlertBody(ValidationReport report)

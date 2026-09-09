@@ -241,13 +241,13 @@ namespace ServerSideTweaks
                 "ValheimEnforcer",
                 "KickAlertBotUrl",
                 "",
-                "Praetoris bot API URL for ValheimEnforcer mod mismatch alerts.");
+                "Discord webhook URL or Praetoris bot API URL for ValheimEnforcer mod mismatch alerts.");
 
             ValheimEnforcerBotApiKey = config.Bind(
                 "ValheimEnforcer",
                 "BotApiKey",
                 "",
-                "API key sent to the Praetoris bot alert endpoint in the X-API-Key header.");
+                "API key sent to a Praetoris bot alert endpoint in the X-API-Key header. This is not sent to Discord webhooks.");
 
             DebugValheimEnforcerKickAlerts = config.Bind(
                 "ValheimEnforcer",

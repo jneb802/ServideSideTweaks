@@ -11,6 +11,7 @@ Author: warpalicious
 - Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
+- Sends ValheimEnforcer mod mismatch details to a Discord webhook or the Praetoris bot API.
 - Hands tree and log ownership to the player damaging them, after the current hit has finished, so later hits and likely final destruction are handled by the active chopper.
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
 - Transfers mine rock ownership to the player damaging the rock with a pickaxe before routing the hit RPC.
@@ -56,6 +57,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.yaml | Per-player vendor progress YAML file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
+| ValheimEnforcer | EnableKickAlerts | false | Sends an alert when ValheimEnforcer rejects a player for a mod mismatch. |
+| ValheimEnforcer | KickAlertBotUrl | empty | Discord webhook URL or Praetoris bot API URL that receives mod mismatch alerts. |
+| ValheimEnforcer | BotApiKey | empty | API key for the Praetoris bot endpoint. The mod does not send this key to Discord webhooks. |
+| ValheimEnforcer | DebugKickAlerts | false | Logs ValheimEnforcer kick alert decisions and successful requests. |
 | TreeOwnership | EnableTreeBaseOwnershipHandoff | true | Standing tree damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | EnableTreeLogOwnershipHandoff | true | Fallen log damage schedules ownership handoff to the attacking player. |
 | TreeOwnership | TreeOwnershipHandoffDelaySeconds | 0.25 | Delay before changing owner so the current damage RPC can finish first. |
