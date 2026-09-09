@@ -2,7 +2,6 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using ServerSideTweaks.Features.ServerSigns;
 using ServerSideTweaks.Features.Bosses;
 using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
@@ -36,8 +35,6 @@ namespace ServerSideTweaks
             Instance = this;
             ModConfig.Bind(Config);
             RegisterRoutedRpcHandlers();
-            ServerSigns.RegisterConsoleCommands();
-
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);
             ValheimEnforcerGroupModPolicy.TryPatch(_harmony);
@@ -60,17 +57,14 @@ namespace ServerSideTweaks
             VendorItemsPerPlayer.Update();
             PickableOwnershipHandoff.Update();
             TreeOwnershipHandoff.Update();
-            ServerSigns.Update();
         }
 
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
-            ServerSigns.ClearRuntimeCache();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             TreeOwnershipHandoff.ClearRuntimeCache();
-            ServerSigns.RegisterRoutedRpcHandlers();
             BossMessage.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
             MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
