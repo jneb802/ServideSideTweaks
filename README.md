@@ -7,6 +7,7 @@ Author: warpalicious
 ## Features
 
 - Reveals placed location icons per player instead of sending every placed icon to every connected player.
+- Forces the server to publish every connected player's map position, even when a player disables public position sharing.
 - Prevents boss summon, alert, and death center-screen messages from being relayed globally to other players.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
@@ -43,6 +44,8 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 
 | Section | Key | Default | Effect |
 | --- | --- | --- | --- |
+| PlayerMapPositions | ForcePublicPlayerPositions | true | Server always publishes every connected player's map position. |
+| PlayerMapPositions | DebugForcePublicPlayerPositions | false | Logs when the server overrides a private player position. |
 | LocationIcons | EnablePerPlayerLocationIcons | true | Reveals placed location icons per player instead of sending them to every connected player. |
 | LocationIcons | LocationIconRevealDistance | 256 | Distance from a placed location icon required for that player to discover it. |
 | LocationIcons | LocationIconDiscoveryFile | warpalicious.serverSideTweaks.locationIcons.tsv | Per-player location icon discovery file. Relative paths are resolved from `BepInEx/config`. |
