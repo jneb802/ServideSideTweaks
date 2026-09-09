@@ -13,7 +13,7 @@ namespace ServerSideTweaks.Features.Map
                 return;
             }
 
-            ZNetPeer peer = znet.GetPeer(rpc);
+            ZNetPeer? peer = znet.GetPeer(rpc);
             if (peer == null || peer.m_publicRefPos)
             {
                 return;
