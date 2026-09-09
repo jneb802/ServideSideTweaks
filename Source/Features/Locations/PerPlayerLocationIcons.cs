@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
@@ -10,6 +12,9 @@ namespace ServerSideTweaks.Features.Locations
 {
     internal static class PerPlayerLocationIcons
     {
+        private const double ZoneSize = 64.0;
+        private const double HalfZoneSize = ZoneSize / 2.0;
+
         private static readonly HashSet<string> VanillaVendorLocationIconNames = new(StringComparer.Ordinal)
         {
             "Vendor_BlackForest",
@@ -19,6 +24,7 @@ namespace ServerSideTweaks.Features.Locations
         private static readonly Dictionary<Vector2i, List<LocationIconCandidate>> CandidatesByPlayerZone = new();
         private static readonly Dictionary<string, HashSet<string>> DiscoveriesByPlayer = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<long, Vector2i> LastCheckedZoneByPeer = new();
+        private static readonly MethodInfo? GetLocationListMethod = AccessTools.Method(typeof(ZoneSystem), "GetLocationList", Type.EmptyTypes);
 
         private static bool _indexBuilt;
         private static bool _discoveriesLoaded;
@@ -90,7 +96,7 @@ namespace ServerSideTweaks.Features.Locations
                 }
 
                 Vector3 playerPosition = peer.GetRefPos();
-                Vector2i playerZone = ZoneSystem.GetZone(playerPosition);
+                Vector2i playerZone = CalculateZone(playerPosition);
                 if (LastCheckedZoneByPeer.TryGetValue(peer.m_uid, out Vector2i lastZone) && lastZone == playerZone)
                 {
                     return;
@@ -169,17 +175,17 @@ namespace ServerSideTweaks.Features.Locations
             CandidatesByPlayerZone.Clear();
             float revealDistance = GetRevealDistance();
 
-            foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
+            foreach (ZoneSystem.LocationInstance instance in GetLocationInstances(zoneSystem))
             {
-                ZoneSystem.LocationInstance instance = entry.Value;
                 string iconName = instance.m_location.m_prefab.Name;
                 if (!IsPlacedRevealableIcon(instance, iconName))
                 {
                     continue;
                 }
 
+                Vector2i locationZone = CalculateZone(instance.m_position);
                 LocationIconCandidate candidate = new(
-                    BuildLocationKey(entry.Key, iconName),
+                    BuildLocationKey(locationZone, iconName),
                     instance.m_position,
                     iconName);
 
@@ -196,8 +202,8 @@ namespace ServerSideTweaks.Features.Locations
         {
             Vector3 min = candidate.Position + new Vector3(-revealDistance, 0.0f, -revealDistance);
             Vector3 max = candidate.Position + new Vector3(revealDistance, 0.0f, revealDistance);
-            Vector2i minZone = ZoneSystem.GetZone(min);
-            Vector2i maxZone = ZoneSystem.GetZone(max);
+            Vector2i minZone = CalculateZone(min);
+            Vector2i maxZone = CalculateZone(max);
 
             for (int y = minZone.y; y <= maxZone.y; y++)
             {
@@ -223,9 +229,8 @@ namespace ServerSideTweaks.Features.Locations
                 : new HashSet<string>(StringComparer.Ordinal);
             List<LocationIconCandidate> icons = new();
 
-            foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
+            foreach (ZoneSystem.LocationInstance instance in GetLocationInstances(zoneSystem))
             {
-                ZoneSystem.LocationInstance instance = entry.Value;
                 string iconName = instance.m_location.m_prefab.Name;
 
                 if (instance.m_location.m_iconAlways)
@@ -245,7 +250,8 @@ namespace ServerSideTweaks.Features.Locations
                     continue;
                 }
 
-                string locationKey = BuildLocationKey(entry.Key, iconName);
+                Vector2i locationZone = CalculateZone(instance.m_position);
+                string locationKey = BuildLocationKey(locationZone, iconName);
                 if (discoveries.Contains(locationKey))
                 {
                     icons.Add(new LocationIconCandidate(locationKey, instance.m_position, iconName));
@@ -262,6 +268,38 @@ namespace ServerSideTweaks.Features.Locations
 
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "LocationIcons", pkg);
             DebugLog($"Sent {icons.Count} location icon(s) to peer {peer.m_uid}; player={(string.IsNullOrWhiteSpace(identity.PlayerName) ? "unknown" : $"{identity.PlayerName} ({identity.PlayerId})")}.");
+        }
+
+        private static IEnumerable<ZoneSystem.LocationInstance> GetLocationInstances(ZoneSystem zoneSystem)
+        {
+            if (GetLocationListMethod == null)
+            {
+                throw new MissingMethodException(typeof(ZoneSystem).FullName, "GetLocationList");
+            }
+
+            object? locationList = GetLocationListMethod.Invoke(zoneSystem, null);
+            if (locationList is not IEnumerable locations)
+            {
+                throw new InvalidOperationException("ZoneSystem.GetLocationList did not return an enumerable collection.");
+            }
+
+            foreach (object? location in locations)
+            {
+                if (location is not ZoneSystem.LocationInstance instance)
+                {
+                    string actualType = location?.GetType().FullName ?? "null";
+                    throw new InvalidCastException($"ZoneSystem.GetLocationList returned an unexpected item type: {actualType}.");
+                }
+
+                yield return instance;
+            }
+        }
+
+        private static Vector2i CalculateZone(Vector3 point)
+        {
+            int x = Utils.FloorToInt((float)(((double)point.x + HalfZoneSize) / ZoneSize));
+            int y = Utils.FloorToInt((float)(((double)point.z + HalfZoneSize) / ZoneSize));
+            return new Vector2i(x, y);
         }
 
         private static bool IsPlacedRevealableIcon(ZoneSystem.LocationInstance instance, string iconName)
