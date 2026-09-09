@@ -8,14 +8,17 @@ namespace ServerSideTweaks
 {
     internal sealed class ConfigWatcher : IDisposable
     {
-        private const long ReloadDelayTicks = 10000000;
+        private const int ReloadDelayMilliseconds = 1000;
 
         private readonly ConfigFile _config;
         private readonly string _configFileFullPath;
         private readonly string _configFileName;
         private readonly ManualLogSource _logger;
+        private readonly object _stateLock = new object();
         private readonly FileSystemWatcher _watcher;
-        private DateTime _lastReloadTime;
+        private DateTime _reloadNotBeforeUtc;
+        private bool _reloadPending;
+        private bool _disposed;
 
         internal ConfigWatcher(ConfigFile config, string modGuid, ManualLogSource logger)
         {
@@ -23,48 +26,84 @@ namespace ServerSideTweaks
             _configFileName = modGuid + ".cfg";
             _configFileFullPath = Path.Combine(Paths.ConfigPath, _configFileName);
             _logger = logger;
-            _lastReloadTime = DateTime.Now;
 
             _watcher = new FileSystemWatcher(Paths.ConfigPath, _configFileName)
             {
-                IncludeSubdirectories = true,
+                IncludeSubdirectories = false,
                 EnableRaisingEvents = true
             };
-            _watcher.Changed += ReadConfigValues;
-            _watcher.Created += ReadConfigValues;
-            _watcher.Renamed += ReadConfigValues;
+            _watcher.Changed += ScheduleReload;
+            _watcher.Created += ScheduleReload;
+            _watcher.Renamed += ScheduleReload;
         }
 
         public void Dispose()
         {
-            _watcher.Changed -= ReadConfigValues;
-            _watcher.Created -= ReadConfigValues;
-            _watcher.Renamed -= ReadConfigValues;
+            lock (_stateLock)
+            {
+                _disposed = true;
+                _reloadPending = false;
+            }
+
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Changed -= ScheduleReload;
+            _watcher.Created -= ScheduleReload;
+            _watcher.Renamed -= ScheduleReload;
             _watcher.Dispose();
         }
 
-        private void ReadConfigValues(object sender, FileSystemEventArgs e)
+        internal void Update()
         {
-            DateTime now = DateTime.Now;
-            long time = now.Ticks - _lastReloadTime.Ticks;
-            if (!File.Exists(_configFileFullPath) || time < ReloadDelayTicks)
+            lock (_stateLock)
+            {
+                if (_disposed || !_reloadPending || DateTime.UtcNow < _reloadNotBeforeUtc)
+                {
+                    return;
+                }
+
+                _reloadPending = false;
+            }
+
+            ReloadConfig();
+        }
+
+        private void ScheduleReload(object sender, FileSystemEventArgs e)
+        {
+            lock (_stateLock)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _reloadPending = true;
+                _reloadNotBeforeUtc = DateTime.UtcNow.AddMilliseconds(ReloadDelayMilliseconds);
+            }
+        }
+
+        private void ReloadConfig()
+        {
+            if (!File.Exists(_configFileFullPath))
             {
                 return;
             }
 
+            bool saveOnConfigSet = _config.SaveOnConfigSet;
             try
             {
                 _logger.LogInfo("Attempting to reload configuration...");
+                _config.SaveOnConfigSet = false;
                 _config.Reload();
                 _logger.LogInfo("Configuration reloaded successfully.");
             }
-            catch
+            catch (Exception exception)
             {
-                _logger.LogError($"There was an issue loading {_configFileName}");
-                return;
+                _logger.LogError($"There was an issue loading {_configFileName}: {exception}");
             }
-
-            _lastReloadTime = now;
+            finally
+            {
+                _config.SaveOnConfigSet = saveOnConfigSet;
+            }
         }
     }
 }
