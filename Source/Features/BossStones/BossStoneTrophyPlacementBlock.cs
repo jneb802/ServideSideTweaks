@@ -9,6 +9,7 @@ namespace ServerSideTweaks.Features.BossStones
         private const string PlacementBlockedMessage = "You must build a boss stone to place trophy";
         private const string StartTempleLocationName = "StartTemple";
         private static readonly int RequestOwnHash = "RPC_RequestOwn".GetStableHashCode();
+        private static readonly int SetVisualItemHash = "SetVisualItem".GetStableHashCode();
 
         private static readonly int[] BossStonePrefabHashes =
         {
@@ -21,18 +22,18 @@ namespace ServerSideTweaks.Features.BossStones
             "BossStone_Fader".GetStableHashCode()
         };
 
-        private static readonly HashSet<string> BossTrophyNames = new(StringComparer.Ordinal)
+        private static readonly HashSet<int> BossTrophyHashes = new()
         {
-            "TrophyEikthyr",
-            "TrophyTheElder",
-            "TrophyBonemass",
-            "TrophyDragonQueen",
-            "TrophyGoblinKing",
-            "TrophySeekerQueen",
-            "TrophyFader"
+            "TrophyEikthyr".GetStableHashCode(),
+            "TrophyTheElder".GetStableHashCode(),
+            "TrophyBonemass".GetStableHashCode(),
+            "TrophyDragonQueen".GetStableHashCode(),
+            "TrophyGoblinKing".GetStableHashCode(),
+            "TrophySeekerQueen".GetStableHashCode(),
+            "TrophyFader".GetStableHashCode()
         };
 
-        internal static bool AllowZdoStringSet(ZDOID zdoId, int hash, string value)
+        internal static bool AllowZdoIntSet(ZDOID zdoId, int hash, int value)
         {
             if (!ShouldBlockZdoItemSet(zdoId, hash, value))
             {
@@ -51,14 +52,14 @@ namespace ServerSideTweaks.Features.BossStones
                 if (zdo != null)
                 {
                     zdo.SetOwner(zdoMan.m_sessionID);
-                    zdo.Set(ZDOVars.s_item, "");
+                    zdo.Set(ZDOVars.s_item, 0);
                     zdo.Set(ZDOVars.s_type, 0, false);
                     zdoMan.ForceSendZDO(zdoId);
                 }
 
                 if (ZRoutedRpc.instance != null)
                 {
-                    ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, zdoId, "SetVisualItem", "", 0, 1, 0);
+                    ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, zdoId, "SetVisualItem", 0, 0, 1, 0);
                 }
             }
             catch (Exception ex)
@@ -83,16 +84,39 @@ namespace ServerSideTweaks.Features.BossStones
                 return;
             }
 
+            SendBlockedMessage(rpcData.m_senderPeerID);
+        }
+
+        internal static bool TryConsumeVisualItem(ZRoutedRpc.RoutedRPCData rpcData)
+        {
+            if (!IsEnabledOnServer() || rpcData.m_methodHash != SetVisualItemHash || rpcData.m_targetZDO.IsNone())
+            {
+                return false;
+            }
+
+            ZPackage parameters = new(rpcData.m_parameters.GetArray());
+            int itemHash = parameters.ReadInt();
+            if (AllowZdoIntSet(rpcData.m_targetZDO, ZDOVars.s_item, itemHash))
+            {
+                return false;
+            }
+
+            SendBlockedMessage(rpcData.m_senderPeerID);
+            return true;
+        }
+
+        private static void SendBlockedMessage(long peerId)
+        {
             ZRoutedRpc.instance?.InvokeRoutedRPC(
-                rpcData.m_senderPeerID,
+                peerId,
                 "ShowMessage",
                 (int)MessageHud.MessageType.Center,
                 PlacementBlockedMessage);
         }
 
-        private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, string value)
+        private static bool ShouldBlockZdoItemSet(ZDOID zdoId, int hash, int value)
         {
-            if (!IsEnabledOnServer() || hash != ZDOVars.s_item || string.IsNullOrEmpty(value) || !BossTrophyNames.Contains(value))
+            if (!IsEnabledOnServer() || hash != ZDOVars.s_item || !BossTrophyHashes.Contains(value))
             {
                 return false;
             }

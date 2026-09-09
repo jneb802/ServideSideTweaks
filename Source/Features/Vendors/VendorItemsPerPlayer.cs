@@ -178,6 +178,19 @@ namespace ServerSideTweaks.Features.Vendors
             }
 
             SaveProgressDocument(progressDocument);
+
+            // Vanilla only broadcasts when the world key is new. Refresh credited
+            // players on the next update, after the vanilla key handler has run.
+            HashSet<long> creditedPlayerIds = new(players.Select(player => player.PlayerId));
+            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
+            {
+                if (peer != null && peer.IsReady() &&
+                    TryGetPeerPlayerInfo(peer, out long playerId, out _, out _) &&
+                    creditedPlayerIds.Contains(playerId))
+                {
+                    QueueGlobalKeyRetry(peer.m_uid, true);
+                }
+            }
         }
 
         private static bool IsEnabled()

@@ -339,11 +339,11 @@ namespace ServerSideTweaks.Features.BossStones
 
             if (rpcData.m_methodHash == SetVisualItemHash)
             {
-                string itemName = parameters.ReadString();
+                int itemHash = parameters.ReadInt();
                 int variant = parameters.ReadInt();
                 int quality = parameters.ReadInt();
                 int orientation = parameters.ReadInt();
-                return $"itemName=\"{itemName}\" variant={variant} quality={quality} orientation={orientation}";
+                return $"itemHash={itemHash} variant={variant} quality={quality} orientation={orientation}";
             }
 
             return $"bytes={rpcData.m_parameters.Size()}";
