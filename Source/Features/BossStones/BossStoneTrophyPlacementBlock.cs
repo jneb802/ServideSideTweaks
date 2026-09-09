@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ServerSideTweaks.Infrastructure;
 using UnityEngine;
 
 namespace ServerSideTweaks.Features.BossStones
@@ -8,17 +9,17 @@ namespace ServerSideTweaks.Features.BossStones
     {
         private const string PlacementBlockedMessage = "You must build a boss stone to place trophy";
         private const string StartTempleLocationName = "StartTemple";
-        private static readonly int RequestOwnHash = "RPC_RequestOwn".GetStableHashCode();
+        private static readonly int RequestOwnHash = StableHash.Compute("RPC_RequestOwn");
 
         private static readonly int[] BossStonePrefabHashes =
         {
-            "BossStone_Eikthyr".GetStableHashCode(),
-            "BossStone_TheElder".GetStableHashCode(),
-            "BossStone_Bonemass".GetStableHashCode(),
-            "BossStone_DragonQueen".GetStableHashCode(),
-            "BossStone_Yagluth".GetStableHashCode(),
-            "BossStone_TheQueen".GetStableHashCode(),
-            "BossStone_Fader".GetStableHashCode()
+            StableHash.Compute("BossStone_Eikthyr"),
+            StableHash.Compute("BossStone_TheElder"),
+            StableHash.Compute("BossStone_Bonemass"),
+            StableHash.Compute("BossStone_DragonQueen"),
+            StableHash.Compute("BossStone_Yagluth"),
+            StableHash.Compute("BossStone_TheQueen"),
+            StableHash.Compute("BossStone_Fader")
         };
 
         private static readonly HashSet<string> BossTrophyNames = new(StringComparer.Ordinal)

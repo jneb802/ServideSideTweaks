@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using BepInEx;
 using HarmonyLib;
+using ServerSideTweaks.Infrastructure;
 using UnityEngine;
 
 namespace ServerSideTweaks.Features.Vendors
@@ -722,7 +723,7 @@ namespace ServerSideTweaks.Features.Vendors
     [HarmonyPatch(typeof(ZRoutedRpc), "HandleRoutedRPC")]
     internal static class ZRoutedRpcHandleRoutedRpcVendorProgressPatch
     {
-        private static readonly int SetGlobalKeyHash = "SetGlobalKey".GetStableHashCode();
+        private static readonly int SetGlobalKeyHash = StableHash.Compute("SetGlobalKey");
 
         private static void Prefix(ZRoutedRpc.RoutedRPCData data)
         {
