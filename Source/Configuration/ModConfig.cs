@@ -22,6 +22,8 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> DebugHarvestOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
+        internal static ConfigEntry<bool> ForcePublicPlayerPositions = null!;
+        internal static ConfigEntry<bool> DebugForcePublicPlayerPositions = null!;
         internal static ConfigEntry<bool> EnablePerPlayerLocationIcons = null!;
         internal static ConfigEntry<float> LocationIconRevealDistance = null!;
         internal static ConfigEntry<string> LocationIconDiscoveryFile = null!;
@@ -150,6 +152,18 @@ namespace ServerSideTweaks
                 "DebugFermenterOwnershipHandoff",
                 false,
                 "When true, logs fermenter ownership handoff decisions.");
+
+            ForcePublicPlayerPositions = config.Bind(
+                "PlayerMapPositions",
+                "ForcePublicPlayerPositions",
+                true,
+                "When true, the server always publishes every connected player's map position, even when that player disables public position sharing.");
+
+            DebugForcePublicPlayerPositions = config.Bind(
+                "PlayerMapPositions",
+                "DebugForcePublicPlayerPositions",
+                false,
+                "When true, logs when the server overrides a private player position.");
 
             EnablePerPlayerLocationIcons = config.Bind(
                 "LocationIcons",
