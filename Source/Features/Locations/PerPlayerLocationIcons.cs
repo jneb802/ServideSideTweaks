@@ -16,9 +16,9 @@ namespace ServerSideTweaks.Features.Locations
             "Hildir_camp",
         };
 
-        private static readonly Dictionary<Vector2i, List<LocationIconCandidate>> CandidatesByPlayerZone = new();
+        private static readonly Dictionary<Vector2s, List<LocationIconCandidate>> CandidatesByPlayerZone = new();
         private static readonly Dictionary<string, HashSet<string>> DiscoveriesByPlayer = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly Dictionary<long, Vector2i> LastCheckedZoneByPeer = new();
+        private static readonly Dictionary<long, Vector2s> LastCheckedZoneByPeer = new();
 
         private static bool _indexBuilt;
         private static bool _discoveriesLoaded;
@@ -90,8 +90,8 @@ namespace ServerSideTweaks.Features.Locations
                 }
 
                 Vector3 playerPosition = peer.GetRefPos();
-                Vector2i playerZone = ZoneSystem.GetZone(playerPosition);
-                if (LastCheckedZoneByPeer.TryGetValue(peer.m_uid, out Vector2i lastZone) && lastZone == playerZone)
+                Vector2s playerZone = ZoneSystem.GetZone(playerPosition);
+                if (LastCheckedZoneByPeer.TryGetValue(peer.m_uid, out Vector2s lastZone) && lastZone == playerZone)
                 {
                     return;
                 }
@@ -169,7 +169,7 @@ namespace ServerSideTweaks.Features.Locations
             CandidatesByPlayerZone.Clear();
             float revealDistance = GetRevealDistance();
 
-            foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
+            foreach (KeyValuePair<Vector2s, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
                 string iconName = instance.m_location.m_prefab.Name;
@@ -196,14 +196,14 @@ namespace ServerSideTweaks.Features.Locations
         {
             Vector3 min = candidate.Position + new Vector3(-revealDistance, 0.0f, -revealDistance);
             Vector3 max = candidate.Position + new Vector3(revealDistance, 0.0f, revealDistance);
-            Vector2i minZone = ZoneSystem.GetZone(min);
-            Vector2i maxZone = ZoneSystem.GetZone(max);
+            Vector2s minZone = ZoneSystem.GetZone(min);
+            Vector2s maxZone = ZoneSystem.GetZone(max);
 
             for (int y = minZone.y; y <= maxZone.y; y++)
             {
                 for (int x = minZone.x; x <= maxZone.x; x++)
                 {
-                    Vector2i playerZone = new(x, y);
+                    Vector2s playerZone = new(x, y);
                     if (!CandidatesByPlayerZone.TryGetValue(playerZone, out List<LocationIconCandidate> candidates))
                     {
                         candidates = new List<LocationIconCandidate>();
@@ -223,7 +223,7 @@ namespace ServerSideTweaks.Features.Locations
                 : new HashSet<string>(StringComparer.Ordinal);
             List<LocationIconCandidate> icons = new();
 
-            foreach (KeyValuePair<Vector2i, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
+            foreach (KeyValuePair<Vector2s, ZoneSystem.LocationInstance> entry in zoneSystem.m_locationInstances)
             {
                 ZoneSystem.LocationInstance instance = entry.Value;
                 string iconName = instance.m_location.m_prefab.Name;
@@ -278,7 +278,7 @@ namespace ServerSideTweaks.Features.Locations
                 VanillaVendorLocationIconNames.Contains(iconName);
         }
 
-        private static string BuildLocationKey(Vector2i zone, string iconName)
+        private static string BuildLocationKey(Vector2s zone, string iconName)
         {
             return $"{zone.x}:{zone.y}:{iconName}";
         }
