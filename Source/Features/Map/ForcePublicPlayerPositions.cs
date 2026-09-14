@@ -1,3 +1,4 @@
+using System;
 using HarmonyLib;
 
 namespace ServerSideTweaks.Features.Map
@@ -14,7 +15,7 @@ namespace ServerSideTweaks.Features.Map
             }
 
             ZNetPeer? peer = znet.GetPeer(rpc);
-            if (peer == null || peer.m_publicRefPos)
+            if (peer == null || peer.m_publicRefPos || IsExemptAdminCharacter(znet, rpc, peer))
             {
                 return;
             }
@@ -24,6 +25,34 @@ namespace ServerSideTweaks.Features.Map
             {
                 ServerSideTweaksPlugin.ModLogger.LogInfo($"Forced public map position for {FormatPeer(peer)}.");
             }
+        }
+
+        private static bool IsExemptAdminCharacter(ZNet znet, ZRpc rpc, ZNetPeer peer)
+        {
+            string networkId = rpc.GetSocket().GetHostName();
+            if (string.IsNullOrWhiteSpace(networkId) ||
+                string.IsNullOrWhiteSpace(peer.m_playerName) ||
+                !znet.IsAdmin(networkId))
+            {
+                return false;
+            }
+
+            string[] exemptCharacterNames = ModConfig.ForcePublicPlayerPositionExemptAdminCharacterNames.Value.Split(
+                new[] { ',', ';', '\r', '\n' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string exemptCharacterName in exemptCharacterNames)
+            {
+                if (string.Equals(
+                        exemptCharacterName.Trim(),
+                        peer.m_playerName,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string FormatPeer(ZNetPeer peer)
