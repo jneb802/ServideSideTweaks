@@ -1,6 +1,5 @@
 using System;
 using HarmonyLib;
-using Splatform;
 
 namespace ServerSideTweaks.Features.Map
 {
@@ -16,7 +15,7 @@ namespace ServerSideTweaks.Features.Map
             }
 
             ZNetPeer? peer = znet.GetPeer(rpc);
-            if (peer == null || peer.m_publicRefPos || IsExemptAdmin(znet, rpc))
+            if (peer == null || peer.m_publicRefPos || IsExemptAdminCharacter(znet, rpc, peer))
             {
                 return;
             }
@@ -28,72 +27,31 @@ namespace ServerSideTweaks.Features.Map
             }
         }
 
-        private static bool IsExemptAdmin(ZNet znet, ZRpc rpc)
+        private static bool IsExemptAdminCharacter(ZNet znet, ZRpc rpc, ZNetPeer peer)
         {
             string networkId = rpc.GetSocket().GetHostName();
-            if (string.IsNullOrWhiteSpace(networkId) || !znet.IsAdmin(networkId))
+            if (string.IsNullOrWhiteSpace(networkId) ||
+                string.IsNullOrWhiteSpace(peer.m_playerName) ||
+                !znet.IsAdmin(networkId))
             {
                 return false;
             }
 
-            string[] exemptAdminIds = ModConfig.ForcePublicPlayerPositionExemptAdminIds.Value.Split(
+            string[] exemptCharacterNames = ModConfig.ForcePublicPlayerPositionExemptAdminCharacterNames.Value.Split(
                 new[] { ',', ';', '\r', '\n' },
                 StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (string exemptAdminId in exemptAdminIds)
+            foreach (string exemptCharacterName in exemptCharacterNames)
             {
-                if (NetworkIdsMatch(exemptAdminId.Trim(), networkId))
+                if (string.Equals(
+                        exemptCharacterName.Trim(),
+                        peer.m_playerName,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
             }
 
-            return false;
-        }
-
-        private static bool NetworkIdsMatch(string configuredId, string connectedId)
-        {
-            if (string.Equals(configuredId, connectedId, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (!TryParseNetworkId(connectedId, out PlatformUserID connectedUserId))
-            {
-                return false;
-            }
-
-            PlatformUserID displayUserId = PlatformUserID.FilterPlatformUserID(connectedUserId);
-            if (string.Equals(configuredId, connectedUserId.ToString(), StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(configuredId, displayUserId.ToString(), StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (TryParseNetworkId(configuredId, out PlatformUserID configuredUserId) &&
-                configuredUserId == connectedUserId)
-            {
-                return true;
-            }
-
-            return connectedUserId.m_platform == "Steam" &&
-                   string.Equals(configuredId, connectedUserId.m_userID, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool TryParseNetworkId(string networkId, out PlatformUserID platformUserId)
-        {
-            if (PlatformUserID.TryParse(networkId, out platformUserId))
-            {
-                return true;
-            }
-
-            if (ulong.TryParse(networkId, out ulong steamId))
-            {
-                platformUserId = new PlatformUserID("Steam", steamId);
-                return platformUserId.IsValid;
-            }
-
-            platformUserId = PlatformUserID.None;
             return false;
         }
 
