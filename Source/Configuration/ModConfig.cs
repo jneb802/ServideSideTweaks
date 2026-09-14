@@ -30,6 +30,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> LocationIconDiscoveryFile = null!;
         internal static ConfigEntry<bool> DebugPerPlayerLocationIcons = null!;
         internal static ConfigEntry<bool> EnableBossMessageRelayBlock = null!;
+        internal static ConfigEntry<float> BossMessageRange = null!;
         internal static ConfigEntry<bool> DebugBossMessageRelayBlock = null!;
         internal static ConfigEntry<bool> EnableVendorItemsPerPlayer = null!;
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
@@ -200,13 +201,19 @@ namespace ServerSideTweaks
                 "BossMessages",
                 "EnableBossMessageRelayBlock",
                 true,
-                "When true, the server does not relay boss summon, alert, and death center-screen messages to other players.");
+                "When true, the server relays boss summon, alert, and death center-screen messages only to nearby players.");
+
+            BossMessageRange = config.Bind(
+                "BossMessages",
+                "BossMessageRange",
+                120.0f,
+                "Maximum distance from the boss at which a player receives boss summon, alert, and death center-screen messages.");
 
             DebugBossMessageRelayBlock = config.Bind(
                 "BossMessages",
                 "DebugBossMessageRelayBlock",
                 false,
-                "When true, logs blocked boss center-screen message relays.");
+                "When true, logs boss center-screen message relay decisions.");
 
             EnableVendorItemsPerPlayer = config.Bind(
                 "VendorItems",
