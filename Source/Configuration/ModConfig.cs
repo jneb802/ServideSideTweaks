@@ -164,7 +164,7 @@ namespace ServerSideTweaks
                 "PlayerMapPositions",
                 "ForcePublicPlayerPositionExemptAdminIds",
                 "",
-                "Comma-separated network IDs that may keep their map positions private. An ID is exempt only while Valheim recognizes that player as a server administrator.");
+                "Comma-separated network IDs that may keep their map positions private. Use the V_, platform-prefixed, or bare Steam ID forms accepted by adminlist.txt. An ID is exempt only while Valheim recognizes that player as a server administrator.");
 
             DebugForcePublicPlayerPositions = config.Bind(
                 "PlayerMapPositions",

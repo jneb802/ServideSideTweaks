@@ -45,7 +45,7 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | Section | Key | Default | Effect |
 | --- | --- | --- | --- |
 | PlayerMapPositions | ForcePublicPlayerPositions | true | Server always publishes every connected player's map position. |
-| PlayerMapPositions | ForcePublicPlayerPositionExemptAdminIds | empty | Comma-separated network IDs that may keep their positions private while Valheim recognizes them as server administrators. Use the same IDs as `adminlist.txt`. |
+| PlayerMapPositions | ForcePublicPlayerPositionExemptAdminIds | empty | Comma-separated network IDs that may keep their positions private while Valheim recognizes them as server administrators. Accepts the `V_`, platform-prefixed, and bare Steam ID forms supported by `adminlist.txt`. |
 | PlayerMapPositions | DebugForcePublicPlayerPositions | false | Logs when the server overrides a private player position. |
 | LocationIcons | EnablePerPlayerLocationIcons | true | Reveals placed location icons per player instead of sending them to every connected player. |
 | LocationIcons | LocationIconRevealDistance | 256 | Distance from a placed location icon required for that player to discover it. |

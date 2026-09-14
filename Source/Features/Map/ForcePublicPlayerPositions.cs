@@ -1,5 +1,6 @@
 using System;
 using HarmonyLib;
+using Splatform;
 
 namespace ServerSideTweaks.Features.Map
 {
@@ -41,12 +42,58 @@ namespace ServerSideTweaks.Features.Map
 
             foreach (string exemptAdminId in exemptAdminIds)
             {
-                if (string.Equals(exemptAdminId.Trim(), networkId, StringComparison.OrdinalIgnoreCase))
+                if (NetworkIdsMatch(exemptAdminId.Trim(), networkId))
                 {
                     return true;
                 }
             }
 
+            return false;
+        }
+
+        private static bool NetworkIdsMatch(string configuredId, string connectedId)
+        {
+            if (string.Equals(configuredId, connectedId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!TryParseNetworkId(connectedId, out PlatformUserID connectedUserId))
+            {
+                return false;
+            }
+
+            PlatformUserID displayUserId = PlatformUserID.FilterPlatformUserID(connectedUserId);
+            if (string.Equals(configuredId, connectedUserId.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(configuredId, displayUserId.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (TryParseNetworkId(configuredId, out PlatformUserID configuredUserId) &&
+                configuredUserId == connectedUserId)
+            {
+                return true;
+            }
+
+            return connectedUserId.m_platform == "Steam" &&
+                   string.Equals(configuredId, connectedUserId.m_userID, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryParseNetworkId(string networkId, out PlatformUserID platformUserId)
+        {
+            if (PlatformUserID.TryParse(networkId, out platformUserId))
+            {
+                return true;
+            }
+
+            if (ulong.TryParse(networkId, out ulong steamId))
+            {
+                platformUserId = new PlatformUserID("Steam", steamId);
+                return platformUserId.IsValid;
+            }
+
+            platformUserId = PlatformUserID.None;
             return false;
         }
 
