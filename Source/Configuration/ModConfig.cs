@@ -23,6 +23,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> ForcePublicPlayerPositions = null!;
+        internal static ConfigEntry<string> ForcePublicPlayerPositionExemptAdminIds = null!;
         internal static ConfigEntry<bool> DebugForcePublicPlayerPositions = null!;
         internal static ConfigEntry<bool> EnablePerPlayerLocationIcons = null!;
         internal static ConfigEntry<float> LocationIconRevealDistance = null!;
@@ -158,6 +159,12 @@ namespace ServerSideTweaks
                 "ForcePublicPlayerPositions",
                 true,
                 "When true, the server always publishes every connected player's map position, even when that player disables public position sharing.");
+
+            ForcePublicPlayerPositionExemptAdminIds = config.Bind(
+                "PlayerMapPositions",
+                "ForcePublicPlayerPositionExemptAdminIds",
+                "",
+                "Comma-separated network IDs that may keep their map positions private. An ID is exempt only while Valheim recognizes that player as a server administrator.");
 
             DebugForcePublicPlayerPositions = config.Bind(
                 "PlayerMapPositions",
