@@ -32,18 +32,16 @@ The same loop ran 10,000 requests after 1,000 warmup calls. Test payloads contai
 
 These are .NET 10 local measurements of the additional inspection step. They are not Unity Mono measurements, total server allocations, or proof about production crash causation.
 
-## Required live validation
+## Live validation
 
-Live validation is pending. At the implementation attempt, Valdev and the Valnet clients were leased by other tasks. No candidate DLL was deployed and no shared device state was changed.
+The 2026-09-16 Valdev run used both Valnet clients, a production-copy world, and
+verified Season 8 8.0.19 DLLs. The actual Unity server inspection created 28,000
+extra packages for 14,000 baseline requests and zero for the same candidate
+workload. All measured requests arrived with valid payloads and sequences.
 
-When the devices are available:
-
-1. Claim Valdev and one Valnet client. Record their previous profiles and verify matching current Season 8 modpack versions. Use isolated copies of those profiles and a test world.
-2. With the original 1.1.15 server DLL, join from the client and record routed-request counts and allocation measurements for a fixed unrelated-RPC workload. Use a development character. Record the exact workload so it can be repeated.
-3. Stop Valdev through the mmcli-agent API, install the candidate server DLL in the test profile, restart through the API, and repeat the same workload with the same client.
-4. Verify ordinary chat/interaction requests, boss-location discovery, boss announcements, and server-addressed door, mining, harvest, pickable, and tree requests. Observe actual feature results and ownership state. A client-owned object alone does not exercise a server-addressed handoff.
-5. In the isolated test configuration, exercise trophy blocking both enabled and disabled, fermenter handoff if enabled, and boss-location diagnostics. Confirm there are no duplicate actions and inspect both server and client logs for new warnings/errors.
-6. Check compatibility with the production NPS version and record the loaded patch order. Recipient-distance behavior across two players requires a second client if that broader behavior is tested.
-7. Restore previous profiles, stop any Valnet machine started for the test, release leases, and attach evidence to the PR. Report measured allocation savings separately from retained-memory behavior and crashes.
+See [the live report](../LiveProbe/RESULTS-2026-09-16.md) for native allocation
+measurements, memory/GC samples, gameplay coverage, setup failures, and remaining
+risks. The client travel sequence was incomplete. This is not proof that the
+production garbage-collector crashes are fixed.
 
 This change preserves the existing feature handlers. Moving boss features between mods remains separate work tracked in issue #37.
