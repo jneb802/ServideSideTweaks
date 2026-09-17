@@ -23,7 +23,7 @@ namespace ServerSideTweaks.Infrastructure.Routing
         internal static void Register(string methodName, RoutedRpcHandler handler)
         {
             int methodHash = methodName.GetStableHashCode();
-            if (!Handlers.TryGetValue(methodHash, out List<RoutedRpcHandler> handlers))
+            if (!Handlers.TryGetValue(methodHash, out List<RoutedRpcHandler>? handlers))
             {
                 handlers = new List<RoutedRpcHandler>();
                 Handlers[methodHash] = handlers;
@@ -32,9 +32,14 @@ namespace ServerSideTweaks.Infrastructure.Routing
             handlers.Add(handler);
         }
 
+        internal static bool HasHandler(int methodHash)
+        {
+            return Handlers.ContainsKey(methodHash);
+        }
+
         internal static bool Process(ZRoutedRpc.RoutedRPCData rpcData)
         {
-            if (!Handlers.TryGetValue(rpcData.m_methodHash, out List<RoutedRpcHandler> handlers))
+            if (!Handlers.TryGetValue(rpcData.m_methodHash, out List<RoutedRpcHandler>? handlers))
             {
                 return true;
             }
