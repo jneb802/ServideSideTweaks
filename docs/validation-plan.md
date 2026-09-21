@@ -34,7 +34,7 @@ Use `Azumatt-XRayVision` on both clients and the server.
 
 - Thunderstore: https://thunderstore.io/c/valheim/p/Azumatt/XRayVision/
 - It shows `Owner` hover text from `view.m_zdo.GetOwner()`.
-- It should be used to capture before/after evidence for door, tree, log, and pickable ownership.
+- It should be used to capture before/after evidence for door ownership.
 
 Fallback only if XRayVision is not usable: `JereKuusela-ESP` with custom text using `<owner>`.
 
@@ -145,25 +145,9 @@ Expected:
 For ownership testing:
 
 ```ini
-[TreeOwnership]
-EnableTreeBaseOwnershipHandoff = true
-EnableTreeLogOwnershipHandoff = true
-DebugTreeOwnershipHandoff = true
-
 [DoorOwnership]
 EnableDoorOwnershipHandoff = true
 DebugDoorOwnershipHandoff = true
-
-[PickableOwnership]
-EnablePickableOwnershipHandoff = false
-DebugPickableOwnershipHandoff = true
-```
-
-Enable pickables only after chat, doors, trees, logs, reset chat, and enRoute pass:
-
-```ini
-[PickableOwnership]
-EnablePickableOwnershipHandoff = true
 ```
 
 For reset chat testing, confirm or set:
@@ -321,18 +305,6 @@ Use Mac and Windows clients together.
 2. Door ownership handoff
    - Action: Windows owns the area or interacts with a door first, then Mac opens the same door.
    - Expected: XRayVision shows the door owner changes to the Mac player, and the door response is immediate.
-
-3. Tree ownership handoff
-   - Action: Windows owns the area, then Mac chops a standing tree.
-   - Expected: after the configured delay, XRayVision or debug logs show the tree owner changes to Mac.
-
-4. Log ownership handoff
-   - Action: repeat with fallen logs.
-   - Expected: owner changes to the active chopper before later hits or final destruction.
-
-5. Pickable ownership handoff
-   - Action: enable pickable handoff, then Mac picks a berry/mushroom/crop in an area owned by Windows.
-   - Expected: owner changes to Mac, the pick succeeds once, and drops are not duplicated.
 
 ## enRoute Test Cases
 
