@@ -7,9 +7,6 @@ using ServerSideTweaks.Features.Doors;
 using ServerSideTweaks.Features.Fermenters;
 using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Locations;
-using ServerSideTweaks.Features.Mining;
-using ServerSideTweaks.Features.Pickables;
-using ServerSideTweaks.Features.Trees;
 using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
 using ServerSideTweaks.Infrastructure;
@@ -55,8 +52,6 @@ namespace ServerSideTweaks
             _configWatcher?.Update();
             HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
-            PickableOwnershipHandoff.Update();
-            TreeOwnershipHandoff.Update();
         }
 
         private static void RegisterRoutedRpcHandlers()
@@ -64,14 +59,10 @@ namespace ServerSideTweaks
             RoutedRpcDispatcher.Clear();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
-            TreeOwnershipHandoff.ClearRuntimeCache();
             BossMessage.RegisterRoutedRpcHandlers();
             DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
-            MineRockOwnershipHandoff.RegisterRoutedRpcHandlers();
             HarvestOwnershipHandoff.RegisterRoutedRpcHandlers();
             FermenterOwnershipHandoff.RegisterRoutedRpcHandlers();
-            TreeOwnershipHandoff.RegisterRoutedRpcHandlers();
-            PickableOwnershipHandoff.RegisterRoutedRpcHandlers();
         }
     }
 } 
