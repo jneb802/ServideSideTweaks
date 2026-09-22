@@ -176,7 +176,12 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             ModIssue clientMod,
             bool enforceForThisPlayer)
         {
-            if (!enforceForThisPlayer || !serverMod.EnforceVersion)
+            if (!enforceForThisPlayer ||
+                (!serverMod.EnforceVersion &&
+                 !VersionsDifferAtStrictness(
+                     serverMod.ExpectedVersion,
+                     clientMod.ActualVersion,
+                     serverMod.JotunnVersionStrictness)))
             {
                 return;
             }
@@ -185,6 +190,59 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             {
                 mismatches.Add(serverMod.WithActual(clientMod.ActualVersion));
             }
+        }
+
+        internal static bool VersionsDifferAtStrictness(
+            string expectedVersion,
+            string actualVersion,
+            int strictness)
+        {
+            if (strictness <= 0 ||
+                !System.Version.TryParse(expectedVersion, out System.Version expected) ||
+                !System.Version.TryParse(actualVersion, out System.Version actual))
+            {
+                return false;
+            }
+
+            if (expected.Major != actual.Major)
+            {
+                return true;
+            }
+
+            if (strictness >= 2 && expected.Minor != actual.Minor)
+            {
+                return true;
+            }
+
+            return strictness >= 3 && expected.Build != actual.Build;
+        }
+
+        private static int GetJotunnVersionStrictness(string pluginId)
+        {
+            if (string.IsNullOrWhiteSpace(pluginId) ||
+                !Chainloader.PluginInfos.TryGetValue(pluginId, out PluginInfo pluginInfo) ||
+                pluginInfo.Instance == null)
+            {
+                return 0;
+            }
+
+            object? compatibilityAttribute = pluginInfo.Instance.GetType()
+                .GetCustomAttributes(true)
+                .FirstOrDefault(attribute =>
+                    string.Equals(
+                        attribute.GetType().FullName,
+                        "Jotunn.Utils.NetworkCompatibilityAttribute",
+                        StringComparison.Ordinal));
+            if (compatibilityAttribute == null)
+            {
+                return 0;
+            }
+
+            object? value = AccessTools.Property(
+                    compatibilityAttribute.GetType(),
+                    "EnforceSameVersion")
+                ?.GetValue(compatibilityAttribute, null);
+            return value == null ? 0 : Convert.ToInt32(value);
         }
 
         private static IEnumerator SendAlert(ValidationReport report)
@@ -393,6 +451,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             public string ExpectedVersion { get; }
             public string ActualVersion { get; }
             public bool EnforceVersion { get; }
+            public int JotunnVersionStrictness { get; }
             public string PackageOwner { get; }
             public string PackageName { get; }
             public string PackageVersion { get; }
@@ -405,6 +464,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                 string expectedVersion,
                 string actualVersion,
                 bool enforceVersion,
+                int jotunnVersionStrictness,
                 ThunderstorePackage package)
             {
                 Key = key;
@@ -413,6 +473,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                 ExpectedVersion = expectedVersion;
                 ActualVersion = actualVersion;
                 EnforceVersion = enforceVersion;
+                JotunnVersionStrictness = jotunnVersionStrictness;
                 PackageOwner = package.Owner;
                 PackageName = package.Name;
                 PackageVersion = package.Version;
@@ -429,6 +490,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                     GetStringProperty(mod, "Version"),
                     GetStringProperty(mod, "Version"),
                     GetBoolProperty(mod, "EnforceVersion"),
+                    GetJotunnVersionStrictness(pluginId),
                     ThunderstorePackage.ForPlugin(pluginId));
             }
 
@@ -441,6 +503,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                     ExpectedVersion,
                     actualVersion,
                     EnforceVersion,
+                    JotunnVersionStrictness,
                     new ThunderstorePackage(PackageOwner, PackageName, PackageVersion));
             }
         }
