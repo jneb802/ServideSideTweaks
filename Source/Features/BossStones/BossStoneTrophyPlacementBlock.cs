@@ -51,7 +51,6 @@ namespace ServerSideTweaks.Features.BossStones
                 ZDO? zdo = zdoMan.GetZDO(zdoId);
                 if (zdo != null)
                 {
-                    zdo.SetOwner(zdoMan.m_sessionID);
                     zdo.Set(ZDOVars.s_item, 0);
                     zdo.Set(ZDOVars.s_type, 0, false);
                     zdoMan.ForceSendZDO(zdoId);
@@ -64,7 +63,7 @@ namespace ServerSideTweaks.Features.BossStones
             }
             catch (Exception ex)
             {
-                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to restore boss-stone ownership after blocking trophy placement: {ex}");
+                ServerSideTweaksPlugin.ModLogger.LogWarning($"Failed to clear boss-stone trophy state after blocking trophy placement: {ex}");
             }
 
             ServerSideTweaksPlugin.ModLogger.LogInfo($"Blocked boss-stone trophy ZDO item write. zdo={zdoId} item={value}");

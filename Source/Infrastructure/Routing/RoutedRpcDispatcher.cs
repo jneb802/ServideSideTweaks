@@ -32,11 +32,6 @@ namespace ServerSideTweaks.Infrastructure.Routing
             handlers.Add(handler);
         }
 
-        internal static bool HasHandler(int methodHash)
-        {
-            return Handlers.ContainsKey(methodHash);
-        }
-
         internal static bool Process(ZRoutedRpc.RoutedRPCData rpcData)
         {
             if (!Handlers.TryGetValue(rpcData.m_methodHash, out List<RoutedRpcHandler>? handlers))

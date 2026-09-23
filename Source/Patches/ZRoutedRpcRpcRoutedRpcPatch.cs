@@ -1,7 +1,6 @@
 using HarmonyLib;
 using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Features.Bosses;
-using ServerSideTweaks.Infrastructure.Routing;
 
 namespace ServerSideTweaks.Patches
 {
@@ -26,7 +25,7 @@ namespace ServerSideTweaks.Patches
             try
             {
                 pkg.SetPos(0);
-                if (!RequiresInspection(__instance, pkg))
+                if (!RequiresInspection(pkg))
                 {
                     return true;
                 }
@@ -51,33 +50,7 @@ namespace ServerSideTweaks.Patches
                     return false;
                 }
 
-                if (rpcData.m_targetPeerID != __instance.m_id || rpcData.m_targetZDO.IsNone())
-                {
-                    return true;
-                }
-
-                // Server-addressed object calls never enter RouteRPC. Apply the
-                // same handlers here, before vanilla attempts local delivery.
-                if (!RoutedRpcDispatcher.Process(rpcData))
-                {
-                    return false;
-                }
-
-                if (rpcData.m_targetPeerID == __instance.m_id)
-                {
-                    return true;
-                }
-
-                // Forward the rewritten call once, preserving its original sender.
-                // Calling RouteRPC here would run the ownership handlers twice.
-                ZNetPeer targetPeer = __instance.GetPeer(rpcData.m_targetPeerID);
-                if (targetPeer != null && targetPeer.IsReady())
-                {
-                    ZPackage forwarded = new();
-                    rpcData.Serialize(forwarded);
-                    targetPeer.m_rpc.Invoke("RoutedRPC", forwarded);
-                }
-                return false;
+                return true;
             }
             catch (System.Exception ex)
             {
@@ -87,7 +60,7 @@ namespace ServerSideTweaks.Patches
             }
         }
 
-        private static bool RequiresInspection(ZRoutedRpc routedRpc, ZPackage pkg)
+        private static bool RequiresInspection(ZPackage pkg)
         {
             // Match RoutedRPCData's wire header without reading/copying its payload.
             // Both the existing inspection and the next RPC handler expect offset zero.
@@ -131,9 +104,7 @@ namespace ServerSideTweaks.Patches
                 return true;
             }
 
-            // Non-server destinations reach the existing RouteRPC dispatcher later.
-            return targetPeerId == routedRpc.m_id && !targetZdo.IsNone() &&
-                RoutedRpcDispatcher.HasHandler(methodHash);
+            return false;
         }
     }
 }

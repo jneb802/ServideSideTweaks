@@ -11,11 +11,8 @@ Author: warpalicious
 - Relays boss summon, alert, and death center-screen messages only to players near the boss.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
-- Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
-- Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
-- Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
-- Releases those temporary ownership assignments after five seconds without another tracked interaction, if the owner is unchanged. Disconnected owners are released on the next cleanup check.
-- Removes ownership records for deleted network objects once per minute. This scan does not change ownership of existing objects.
+
+Object ownership is managed by Valheim and installed ownership mods such as NetworkPerformanceSystem (NPS). ServerSideTweaks does not assign or release object ownership. NPS is not a required dependency of this mod.
 
 Server signs now live in the standalone [ServerSigns](https://github.com/jneb802/ServerSigns) mod.
 
@@ -57,17 +54,10 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.yaml | Per-player vendor progress YAML file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
-| DoorOwnership | EnableDoorOwnershipHandoff | true | Server transfers door ownership to the interacting player before routing `UseDoor`. |
-| DoorOwnership | DebugDoorOwnershipHandoff | false | Logs door handoff decisions for testing. |
-| HarvestOwnership | EnableHarvestOwnershipHandoff | true | Server transfers beehive and sap collector ownership to the interacting player before routing `RPC_Extract`. |
-| HarvestOwnership | DebugHarvestOwnershipHandoff | false | Logs beehive and sap collector handoff decisions for testing. |
-| FermenterOwnership | EnableFermenterOwnershipHandoff | true | Server transfers fermenter ownership to the interacting player before routing `RPC_AddItem` and `RPC_Tap`. |
-| FermenterOwnership | DebugFermenterOwnershipHandoff | false | Logs fermenter handoff decisions for testing. |
-| OwnershipHandoff | OwnershipHandoffReleaseSeconds | 5 | Delay after the last tracked interaction before releasing unchanged ownership. Range: 0.1–3600 seconds. |
-| OwnershipHandoff | EnableStaleZdoOwnerCleanup | true | Removes ownership records for deleted network objects, regardless of which system assigned them. |
-| OwnershipHandoff | StaleZdoOwnerCleanupIntervalSeconds | 60 | Interval between stale ownership scans. Range: 1–3600 seconds. |
 
-Only ownership assigned by this mod for doors, beehives, sap collectors, and fermenters is tracked for delayed release. Using an object already owned by the player does not start tracking it. A later interaction extends the delay only if the assignment is already tracked. The cleanup check runs at most twice per second. An observed change to another owner ends tracking without changing that owner. Tracking is cleared when the world changes.
+Existing `DoorOwnership`, `HarvestOwnership`, `FermenterOwnership`, and `OwnershipHandoff` config sections are unused and can be removed. The earlier `TreeOwnership`, `PickableOwnership`, and `MineRockOwnership` sections are also unused.
+
+Live validation of this removal is pending. See [the validation plan](docs/ownership-removal-validation.md).
 
 ## Vendor Progress File
 

@@ -3,9 +3,6 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using ServerSideTweaks.Features.Bosses;
-using ServerSideTweaks.Features.Doors;
-using ServerSideTweaks.Features.Fermenters;
-using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
@@ -42,8 +39,6 @@ namespace ServerSideTweaks
 
         private void OnDestroy()
         {
-            TemporaryOwnershipHandoffs.ClearRuntimeCache();
-            StaleZdoOwnerCleanup.ClearRuntimeCache();
             _harmony.UnpatchSelf();
             _configWatcher?.Dispose();
             Instance = null;
@@ -54,21 +49,14 @@ namespace ServerSideTweaks
             _configWatcher?.Update();
             HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
-            TemporaryOwnershipHandoffs.Update();
-            StaleZdoOwnerCleanup.Update();
         }
 
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
-            TemporaryOwnershipHandoffs.ClearRuntimeCache();
-            StaleZdoOwnerCleanup.ClearRuntimeCache();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             BossMessage.RegisterRoutedRpcHandlers();
-            DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
-            HarvestOwnershipHandoff.RegisterRoutedRpcHandlers();
-            FermenterOwnershipHandoff.RegisterRoutedRpcHandlers();
         }
     }
 } 
