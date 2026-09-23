@@ -14,6 +14,8 @@ Author: warpalicious
 - Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
 - Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
 - Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
+- Releases those temporary ownership assignments after five seconds without another tracked interaction, if the owner is unchanged. Disconnected owners are released on the next cleanup check.
+- Removes ownership records for deleted network objects once per minute. This scan does not change ownership of existing objects.
 
 Server signs now live in the standalone [ServerSigns](https://github.com/jneb802/ServerSigns) mod.
 
@@ -61,6 +63,12 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | HarvestOwnership | DebugHarvestOwnershipHandoff | false | Logs beehive and sap collector handoff decisions for testing. |
 | FermenterOwnership | EnableFermenterOwnershipHandoff | true | Server transfers fermenter ownership to the interacting player before routing `RPC_AddItem` and `RPC_Tap`. |
 | FermenterOwnership | DebugFermenterOwnershipHandoff | false | Logs fermenter handoff decisions for testing. |
+| OwnershipHandoff | OwnershipHandoffReleaseSeconds | 5 | Delay after the last tracked interaction before releasing unchanged ownership. Range: 0.1–3600 seconds. |
+| OwnershipHandoff | EnableStaleZdoOwnerCleanup | true | Removes ownership records for deleted network objects, regardless of which system assigned them. |
+| OwnershipHandoff | StaleZdoOwnerCleanupIntervalSeconds | 60 | Interval between stale ownership scans. Range: 1–3600 seconds. |
+
+Only ownership assigned by this mod for doors, beehives, sap collectors, and fermenters is tracked for delayed release. Using an object already owned by the player does not start tracking it. A later interaction extends the delay only if the assignment is already tracked. The cleanup check runs at most twice per second. An observed change to another owner ends tracking without changing that owner. Tracking is cleared when the world changes.
+
 ## Vendor Progress File
 
 Vendor progress is saved as a YAML file. The server reads the file from disk when sending vendor-related global keys and reloads it before recording new boss progress, so manual edits take effect without restarting the server.

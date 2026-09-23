@@ -42,6 +42,8 @@ namespace ServerSideTweaks
 
         private void OnDestroy()
         {
+            TemporaryOwnershipHandoffs.ClearRuntimeCache();
+            StaleZdoOwnerCleanup.ClearRuntimeCache();
             _harmony.UnpatchSelf();
             _configWatcher?.Dispose();
             Instance = null;
@@ -52,11 +54,15 @@ namespace ServerSideTweaks
             _configWatcher?.Update();
             HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
+            TemporaryOwnershipHandoffs.Update();
+            StaleZdoOwnerCleanup.Update();
         }
 
         private static void RegisterRoutedRpcHandlers()
         {
             RoutedRpcDispatcher.Clear();
+            TemporaryOwnershipHandoffs.ClearRuntimeCache();
+            StaleZdoOwnerCleanup.ClearRuntimeCache();
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             BossMessage.RegisterRoutedRpcHandlers();

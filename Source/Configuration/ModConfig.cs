@@ -10,6 +10,9 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> DebugHarvestOwnershipHandoff = null!;
         internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
+        internal static ConfigEntry<float> OwnershipHandoffReleaseSeconds = null!;
+        internal static ConfigEntry<bool> EnableStaleZdoOwnerCleanup = null!;
+        internal static ConfigEntry<float> StaleZdoOwnerCleanupIntervalSeconds = null!;
         internal static ConfigEntry<bool> ForcePublicPlayerPositions = null!;
         internal static ConfigEntry<string> ForcePublicPlayerPositionExemptAdminCharacterNames = null!;
         internal static ConfigEntry<bool> DebugForcePublicPlayerPositions = null!;
@@ -70,6 +73,28 @@ namespace ServerSideTweaks
                 "DebugFermenterOwnershipHandoff",
                 false,
                 "When true, logs fermenter ownership handoff decisions.");
+
+            OwnershipHandoffReleaseSeconds = config.Bind(
+                "OwnershipHandoff",
+                "OwnershipHandoffReleaseSeconds",
+                5.0f,
+                new ConfigDescription(
+                    "Seconds after the last tracked door, beehive, sap collector, or fermenter interaction before releasing unchanged ownership.",
+                    new AcceptableValueRange<float>(0.1f, 3600.0f)));
+
+            EnableStaleZdoOwnerCleanup = config.Bind(
+                "OwnershipHandoff",
+                "EnableStaleZdoOwnerCleanup",
+                true,
+                "When true, removes ownership records for network objects that no longer exist, regardless of which system assigned the owner.");
+
+            StaleZdoOwnerCleanupIntervalSeconds = config.Bind(
+                "OwnershipHandoff",
+                "StaleZdoOwnerCleanupIntervalSeconds",
+                60.0f,
+                new ConfigDescription(
+                    "Seconds between stale ownership record scans.",
+                    new AcceptableValueRange<float>(1.0f, 3600.0f)));
 
             ForcePublicPlayerPositions = config.Bind(
                 "PlayerMapPositions",
