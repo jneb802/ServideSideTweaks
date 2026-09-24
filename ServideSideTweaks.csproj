@@ -29,6 +29,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="validation/**/*.cs" />
     <PackageReference Include="YamlDotNet" Version="16.0.0" PrivateAssets="All" />
   </ItemGroup>
 

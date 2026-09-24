@@ -26,9 +26,27 @@ namespace ServerSideTweaks
         internal static ConfigEntry<bool> EnableValheimEnforcerGroupModPolicy = null!;
         internal static ConfigEntry<string> ValheimEnforcerGroupModPolicyFile = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerGroupModPolicy = null!;
+        internal static ConfigEntry<bool> EnablePersistentEventPlacement = null!;
+        internal static ConfigEntry<string> PersistentEventProtectedPrefabs = null!;
+        internal static ConfigEntry<float> PersistentEventPrefabClearance = null!;
+        internal static ConfigEntry<bool> DebugPersistentEventPlacement = null!;
 
         internal static void Bind(ConfigFile config)
         {
+            EnablePersistentEventPlacement = config.Bind(
+                "PersistentEvents", "EnablePlacementRestrictions", true,
+                "Restricts new invasion event centers to Mountains or Plains and keeps their maximum radius clear of configured prefabs. Server only; existing events are unchanged.");
+            PersistentEventProtectedPrefabs = config.Bind(
+                "PersistentEvents", "ProtectedPrefabs", "guard_stone",
+                "Comma-separated, case-sensitive networked prefab names. All stored instances are protected, including unloaded objects and disabled wards. Empty disables prefab exclusion only.");
+            PersistentEventPrefabClearance = config.Bind(
+                "PersistentEvents", "PrefabClearance", 100f,
+                new ConfigDescription("Minimum horizontal distance in metres from a protected prefab to the event's maximum outer edge. Added to the configured maximum event radius.",
+                    new AcceptableValueRange<float>(0f, 10000f)));
+            DebugPersistentEventPlacement = config.Bind(
+                "PersistentEvents", "DebugPlacement", false,
+                "Logs the protected-object count and placement result for each new invasion. Does not log each random candidate.");
+
             ForcePublicPlayerPositions = config.Bind(
                 "PlayerMapPositions",
                 "ForcePublicPlayerPositions",

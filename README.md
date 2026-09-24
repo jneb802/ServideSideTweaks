@@ -11,6 +11,7 @@ Author: warpalicious
 - Relays boss summon, alert, and death center-screen messages only to players near the boss.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
+- Restricts new persistent invasion event centers to Mountains or Plains, away from configured stored prefabs such as player wards.
 
 Object ownership is managed by Valheim and installed ownership mods such as NetworkPerformanceSystem (NPS). ServerSideTweaks does not assign or release object ownership. NPS is not a required dependency of this mod.
 
@@ -54,6 +55,14 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.yaml | Per-player vendor progress YAML file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
+| PersistentEvents | EnablePlacementRestrictions | true | Restricts new persistent invasion event centers to Mountains or Plains. Server only. |
+| PersistentEvents | ProtectedPrefabs | guard_stone | Comma-separated, case-sensitive networked prefab names to avoid. Includes disabled wards and unloaded objects. Empty disables prefab exclusion only. |
+| PersistentEvents | PrefabClearance | 100 | Horizontal clearance in metres beyond the event's maximum radius. |
+| PersistentEvents | DebugPlacement | false | Logs protected-object counts and placement results. |
+
+Persistent event placement settings reload with the existing config watcher and apply to the next placement search. No client update is required. The server keeps the vanilla placement attempt limit, allowed-biome checks, player separation, terrain limits and event spacing. If no valid position exists, the vanilla search fails; it does not fall back to a forbidden position. Vanilla can still consume the triggering object when placement fails.
+
+The biome restriction applies to the **event center**, as in vanilla placement. An event near a biome boundary can extend across that boundary. Prefab exclusion covers the full maximum event radius plus `PrefabClearance`, measured horizontally from every matching stored object. For a 300-metre maximum radius and 100-metre clearance, the center must be more than 400 metres from each protected object, regardless of elevation or ward activation. This is placement protection, not a barrier to enemies moving outside an event. Wards built after an event starts do not move that event. Existing events and unrelated persistent event definitions are unchanged.
 
 Existing `DoorOwnership`, `HarvestOwnership`, `FermenterOwnership`, and `OwnershipHandoff` config sections are unused and can be removed. The earlier `TreeOwnership`, `PickableOwnership`, and `MineRockOwnership` sections are also unused.
 
