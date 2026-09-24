@@ -4,12 +4,6 @@ namespace ServerSideTweaks
 {
     internal static class ModConfig
     {
-        internal static ConfigEntry<bool> EnableDoorOwnershipHandoff = null!;
-        internal static ConfigEntry<bool> DebugDoorOwnershipHandoff = null!;
-        internal static ConfigEntry<bool> EnableHarvestOwnershipHandoff = null!;
-        internal static ConfigEntry<bool> DebugHarvestOwnershipHandoff = null!;
-        internal static ConfigEntry<bool> EnableFermenterOwnershipHandoff = null!;
-        internal static ConfigEntry<bool> DebugFermenterOwnershipHandoff = null!;
         internal static ConfigEntry<bool> ForcePublicPlayerPositions = null!;
         internal static ConfigEntry<string> ForcePublicPlayerPositionExemptAdminCharacterNames = null!;
         internal static ConfigEntry<bool> DebugForcePublicPlayerPositions = null!;
@@ -35,42 +29,6 @@ namespace ServerSideTweaks
 
         internal static void Bind(ConfigFile config)
         {
-            EnableDoorOwnershipHandoff = config.Bind(
-                "DoorOwnership",
-                "EnableDoorOwnershipHandoff",
-                true,
-                "When true, door use RPCs transfer door ownership to the interacting player and route the door action to that player.");
-
-            DebugDoorOwnershipHandoff = config.Bind(
-                "DoorOwnership",
-                "DebugDoorOwnershipHandoff",
-                false,
-                "When true, logs door ownership handoff decisions.");
-
-            EnableHarvestOwnershipHandoff = config.Bind(
-                "HarvestOwnership",
-                "EnableHarvestOwnershipHandoff",
-                true,
-                "When true, beehive and sap collector extract RPCs transfer ownership to the interacting player before routing.");
-
-            DebugHarvestOwnershipHandoff = config.Bind(
-                "HarvestOwnership",
-                "DebugHarvestOwnershipHandoff",
-                false,
-                "When true, logs beehive and sap collector ownership handoff decisions.");
-
-            EnableFermenterOwnershipHandoff = config.Bind(
-                "FermenterOwnership",
-                "EnableFermenterOwnershipHandoff",
-                true,
-                "When true, fermenter add-item and tap RPCs transfer ownership to the interacting player before routing.");
-
-            DebugFermenterOwnershipHandoff = config.Bind(
-                "FermenterOwnership",
-                "DebugFermenterOwnershipHandoff",
-                false,
-                "When true, logs fermenter ownership handoff decisions.");
-
             ForcePublicPlayerPositions = config.Bind(
                 "PlayerMapPositions",
                 "ForcePublicPlayerPositions",

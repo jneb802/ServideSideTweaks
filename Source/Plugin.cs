@@ -3,9 +3,6 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using ServerSideTweaks.Features.Bosses;
-using ServerSideTweaks.Features.Doors;
-using ServerSideTweaks.Features.Fermenters;
-using ServerSideTweaks.Features.Harvest;
 using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
@@ -60,9 +57,6 @@ namespace ServerSideTweaks
             PerPlayerLocationIcons.ClearRuntimeCache();
             VendorItemsPerPlayer.ClearRuntimeCache();
             BossMessage.RegisterRoutedRpcHandlers();
-            DoorOwnershipHandoff.RegisterRoutedRpcHandlers();
-            HarvestOwnershipHandoff.RegisterRoutedRpcHandlers();
-            FermenterOwnershipHandoff.RegisterRoutedRpcHandlers();
         }
     }
 } 

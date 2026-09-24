@@ -1,10 +1,11 @@
 # Combined Hetzner Validation Plan
 
+Historical plan for the former enRoute/reset setup. For the current ownership removal, use [the Season 8 validation plan](ownership-removal-validation.md). The profiles and commands below are historical records, not current deployment instructions.
+
 ## Objective
 
-Validate three features together on the current Hetzner Praetoris enRoute test setup:
+Validate reset tracking and routing on the former Hetzner Praetoris enRoute test setup:
 
-- `serverSideTweaks` ownership handoffs.
 - `CronJob` reset tracking written to `praetoris_resets.json` and shown through `!resets` chat commands.
 - enRoute RPC routing improvements.
 
@@ -27,16 +28,6 @@ Confirmed validation support mods:
 Do not switch profiles unless we intentionally roll back after the combined test pass.
 
 Client profiles intentionally do not include `local-EnRoute`, `CronJob`, or `serverSideTweaks`.
-
-## Owner Inspection
-
-Use `Azumatt-XRayVision` on both clients and the server.
-
-- Thunderstore: https://thunderstore.io/c/valheim/p/Azumatt/XRayVision/
-- It shows `Owner` hover text from `view.m_zdo.GetOwner()`.
-- It should be used to capture before/after evidence for door ownership.
-
-Fallback only if XRayVision is not usable: `JereKuusela-ESP` with custom text using `<owner>`.
 
 ## Build Artifacts
 
@@ -141,14 +132,6 @@ Expected:
 - No relevant startup exceptions.
 
 ## Server Config
-
-For ownership testing:
-
-```ini
-[DoorOwnership]
-EnableDoorOwnershipHandoff = true
-DebugDoorOwnershipHandoff = true
-```
 
 For reset chat testing, confirm or set:
 
@@ -294,18 +277,6 @@ ssh warp@praetoris "mv /home/warp/valheim/BepInEx/config/cron.yaml.pre-live-rese
 
 8. Restart or reload CronJob config again.
 
-## Ownership Test Cases
-
-Use Mac and Windows clients together.
-
-1. Windows second-client join
-   - Action: join from `windowspc` with a separate development character.
-   - Expected: both clients are present on the server.
-
-2. Door ownership handoff
-   - Action: Windows owns the area or interacts with a door first, then Mac opens the same door.
-   - Expected: XRayVision shows the door owner changes to the Mac player, and the door response is immediate.
-
 ## enRoute Test Cases
 
 Run the enRoute validation scenario against the same server profile after the DLLs are loaded.
@@ -314,7 +285,7 @@ Expected:
 
 - enRoute-specific RPC routing behavior works with `serverSideTweaks` routed RPC dispatcher active.
 - No `ZRoutedRpc` handler exceptions appear in server or client logs.
-- Ownership and reset chat commands still work after enRoute actions.
+- Reset chat commands still work after enRoute actions.
 
 Record the exact enRoute commands/actions used in the evidence notes for the run.
 
@@ -342,7 +313,6 @@ Windows PC:
 - Server BepInEx error scan after each test stage.
 - `praetoris_resets.json` before seed, after seed, after reload edit, and after live CronJob write.
 - In-game screenshots of `!resets`, `!resets copper`, `!resets list`, and invalid key.
-- XRayVision screenshots or recordings showing owner before and after each ownership handoff.
 - Mac and Windows client logs only if there is a client-side error.
 
 ## Rollback
@@ -374,7 +344,6 @@ The combined pass succeeds when:
 
 - Both DLLs load on Hetzner with no errors.
 - enRoute still works with the `serverSideTweaks` routed RPC dispatcher active.
-- Ownership handoffs can be observed with XRayVision from Mac and Windows.
 - `praetoris_resets.json` is read from server config.
 - `!resets`, `!resets copper`, and `!resets list` work in-game.
 - Invalid reset names are handled cleanly.

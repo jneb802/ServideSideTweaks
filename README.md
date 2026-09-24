@@ -11,9 +11,8 @@ Author: warpalicious
 - Relays boss summon, alert, and death center-screen messages only to players near the boss.
 - Gates configured boss-unlocked vendor items by per-player boss progress. Boss kills credit connected players within 64 meters of the player whose client reports the boss defeat global key.
 - Prevents players from placing trophies on start-temple boss stones.
-- Transfers door ownership to the player using the door before routing the vanilla door-use RPC.
-- Transfers beehive and sap collector ownership to the player extracting resources before routing `RPC_Extract`.
-- Transfers fermenter ownership to the player adding mead base or tapping finished mead before routing the fermenter RPC.
+
+Object ownership is managed by Valheim and installed ownership mods such as NetworkPerformanceSystem (NPS). ServerSideTweaks does not assign or release object ownership. NPS is not a required dependency of this mod.
 
 Server signs now live in the standalone [ServerSigns](https://github.com/jneb802/ServerSigns) mod.
 
@@ -55,12 +54,11 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | VendorItems | VendorProgressGlobalKeys | defeated_eikthyr,defeated_gdking,defeated_bonemass,defeated_dragon,defeated_goblinking | Boss defeat global keys filtered per player. |
 | VendorItems | VendorProgressFile | warpalicious.serverSideTweaks.vendorProgress.yaml | Per-player vendor progress YAML file. Relative paths are resolved from `BepInEx/config`. |
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
-| DoorOwnership | EnableDoorOwnershipHandoff | true | Server transfers door ownership to the interacting player before routing `UseDoor`. |
-| DoorOwnership | DebugDoorOwnershipHandoff | false | Logs door handoff decisions for testing. |
-| HarvestOwnership | EnableHarvestOwnershipHandoff | true | Server transfers beehive and sap collector ownership to the interacting player before routing `RPC_Extract`. |
-| HarvestOwnership | DebugHarvestOwnershipHandoff | false | Logs beehive and sap collector handoff decisions for testing. |
-| FermenterOwnership | EnableFermenterOwnershipHandoff | true | Server transfers fermenter ownership to the interacting player before routing `RPC_AddItem` and `RPC_Tap`. |
-| FermenterOwnership | DebugFermenterOwnershipHandoff | false | Logs fermenter handoff decisions for testing. |
+
+Existing `DoorOwnership`, `HarvestOwnership`, `FermenterOwnership`, and `OwnershipHandoff` config sections are unused and can be removed. The earlier `TreeOwnership`, `PickableOwnership`, and `MineRockOwnership` sections are also unused.
+
+Live validation of this removal is pending. See [the validation plan](docs/ownership-removal-validation.md).
+
 ## Vendor Progress File
 
 Vendor progress is saved as a YAML file. The server reads the file from disk when sending vendor-related global keys and reloads it before recording new boss progress, so manual edits take effect without restarting the server.
