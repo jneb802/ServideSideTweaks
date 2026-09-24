@@ -15,7 +15,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.18";
+        private const string ModVersion = "1.1.19";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
