@@ -27,6 +27,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ValheimEnforcerGroupModPolicyFile = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerGroupModPolicy = null!;
         internal static ConfigEntry<bool> EnablePersistentEventPlacement = null!;
+        internal static ConfigEntry<Heightmap.Biome> PersistentEventAllowedBiomes = null!;
         internal static ConfigEntry<string> PersistentEventProtectedPrefabs = null!;
         internal static ConfigEntry<float> PersistentEventPrefabClearance = null!;
         internal static ConfigEntry<bool> DebugPersistentEventPlacement = null!;
@@ -35,7 +36,10 @@ namespace ServerSideTweaks
         {
             EnablePersistentEventPlacement = config.Bind(
                 "PersistentEvents", "EnablePlacementRestrictions", true,
-                "Restricts new invasion event centers to Mountains or Plains and keeps their maximum radius clear of configured prefabs. Server only; existing events are unchanged.");
+                "Restricts new invasion event centers to AllowedBiomes and keeps their maximum radius clear of configured prefabs. Server only; existing events are unchanged.");
+            PersistentEventAllowedBiomes = config.Bind(
+                "PersistentEvents", "AllowedBiomes", Heightmap.Biome.DeepNorth,
+                "Replaces the game's biome list for new Jotun invasion centers. Use comma-separated biome names, for example Mountain, Plains. DeepNorth is the Deep North biome. None prevents new invasions while placement restrictions are enabled. Other placement rules still apply. Reloads without a restart; existing events are unchanged.");
             PersistentEventProtectedPrefabs = config.Bind(
                 "PersistentEvents", "ProtectedPrefabs", "guard_stone",
                 "Comma-separated, case-sensitive networked prefab names. All stored instances are protected, including unloaded objects and disabled wards. Empty disables prefab exclusion only.");

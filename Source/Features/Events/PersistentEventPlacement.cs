@@ -13,12 +13,12 @@ namespace ServerSideTweaks.Features.Events
     [HarmonyPatch(typeof(PersistentEventSystem.PersistentEvent), nameof(PersistentEventSystem.PersistentEvent.GenerateEventLocation))]
     internal static class PersistentEventPlacement
     {
-        private const Heightmap.Biome AllowedBiomes = Heightmap.Biome.Mountain | Heightmap.Biome.Plains;
         private const string InvasionEventName = "jotun_invasion";
 
         internal sealed class PlacementRules
         {
             internal readonly List<Vector3> ProtectedPositions = new List<Vector3>();
+            internal Heightmap.Biome AllowedBiomes;
             internal float MinimumDistanceSquared;
         }
 
@@ -60,7 +60,10 @@ namespace ServerSideTweaks.Features.Events
                 return null;
             }
 
-            PlacementRules rules = new PlacementRules();
+            PlacementRules rules = new PlacementRules
+            {
+                AllowedBiomes = ModConfig.PersistentEventAllowedBiomes.Value
+            };
             float clearance = ModConfig.PersistentEventPrefabClearance.Value;
             float radius = Mathf.Max(definition.minRadius, definition.maxRadius);
             if (float.IsNaN(clearance) || float.IsInfinity(clearance) || float.IsNaN(radius) || float.IsInfinity(radius) || ZDOMan.instance == null)
@@ -91,18 +94,18 @@ namespace ServerSideTweaks.Features.Events
             }
             if (ModConfig.DebugPersistentEventPlacement.Value)
             {
-                ServerSideTweaksPlugin.ModLogger.LogInfo($"Persistent event placement: protectedObjects={rules.ProtectedPositions.Count}, centerClearance={distance:F1}m, allowedBiomes=Mountain,Plains.");
+                ServerSideTweaksPlugin.ModLogger.LogInfo($"Persistent event placement: protectedObjects={rules.ProtectedPositions.Count}, centerClearance={distance:F1}m, allowedBiomes={rules.AllowedBiomes}.");
             }
             return rules;
         }
 
         internal static bool AllowCandidate(bool vanillaAllowed, Vector3 position, PlacementRules? rules)
         {
-            if (!vanillaAllowed || rules == null)
+            if (rules == null)
             {
                 return vanillaAllowed;
             }
-            if ((WorldGenerator.instance.GetBiome(position) & AllowedBiomes) == 0)
+            if ((WorldGenerator.instance.GetBiome(position) & rules.AllowedBiomes) == 0)
             {
                 return false;
             }

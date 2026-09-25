@@ -40,6 +40,7 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 
 | Section | Key | Default | Effect |
 | --- | --- | --- | --- |
+| PersistentEvents | AllowedBiomes | DeepNorth | Allowed biomes for new Jotun invasion centers when placement restrictions are enabled. |
 | PlayerMapPositions | ForcePublicPlayerPositions | true | Server always publishes every connected player's map position. |
 | PlayerMapPositions | ForcePublicPlayerPositionExemptAdminCharacterNames | empty | Comma-separated character names that may keep their positions private while Valheim recognizes the connected accounts as server administrators. |
 | PlayerMapPositions | DebugForcePublicPlayerPositions | false | Logs when the server overrides a private player position. |
@@ -56,6 +57,12 @@ Runtime config is written to `BepInEx/config/warpalicious.serverSideTweaks.cfg`.
 | BossStoneTrophies | EnableBossStoneTrophyPlacementBlock | true | Prevents players from placing trophies on start-temple boss stones. |
 
 Existing `DoorOwnership`, `HarvestOwnership`, `FermenterOwnership`, and `OwnershipHandoff` config sections are unused and can be removed. The earlier `TreeOwnership`, `PickableOwnership`, and `MineRockOwnership` sections are also unused.
+
+### Jotun invasion biomes
+
+`[PersistentEvents] AllowedBiomes = DeepNorth` limits new invasion centers to Deep North by default. This replaces the game's biome list, which excludes Deep North. For multiple biomes, use comma-separated game names, such as `Mountain, Plains`. `None` prevents new invasions while `EnablePlacementRestrictions` is enabled. The game's other placement rules and configured protected-object clearance still apply.
+
+Saving the config reloads it after about one to two seconds. This also works when mmcli uses a symbolic link for the config folder. The next placement attempt uses the new value. Existing invasions do not move or stop. When upgrading from a version without this setting, the default changes from Mountains and Plains to Deep North. Set `AllowedBiomes = Mountain, Plains` to retain the previous restriction.
 
 Live validation of this removal is pending. See [the validation plan](docs/ownership-removal-validation.md).
 

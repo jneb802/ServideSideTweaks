@@ -16,6 +16,8 @@ namespace ServerSideTweaks
         private readonly ManualLogSource _logger;
         private readonly object _stateLock = new object();
         private readonly FileSystemWatcher _watcher;
+        private DateTime _lastWriteUtc;
+        private DateTime _nextFileCheckUtc;
         private DateTime _reloadNotBeforeUtc;
         private bool _reloadPending;
         private bool _disposed;
@@ -26,6 +28,7 @@ namespace ServerSideTweaks
             _configFileName = modGuid + ".cfg";
             _configFileFullPath = Path.Combine(Paths.ConfigPath, _configFileName);
             _logger = logger;
+            _lastWriteUtc = File.GetLastWriteTimeUtc(_configFileFullPath);
 
             _watcher = new FileSystemWatcher(Paths.ConfigPath, _configFileName)
             {
@@ -56,6 +59,28 @@ namespace ServerSideTweaks
         {
             lock (_stateLock)
             {
+                // Mono can miss watcher events when mmcli's config folder is a symlink.
+                // Check the target's timestamp as well, with the same save delay.
+                DateTime now = DateTime.UtcNow;
+                if (!_disposed && now >= _nextFileCheckUtc)
+                {
+                    _nextFileCheckUtc = now.AddMilliseconds(ReloadDelayMilliseconds);
+                    try
+                    {
+                        DateTime lastWriteUtc = File.GetLastWriteTimeUtc(_configFileFullPath);
+                        if (lastWriteUtc != _lastWriteUtc)
+                        {
+                            _lastWriteUtc = lastWriteUtc;
+                            _reloadPending = true;
+                            _reloadNotBeforeUtc = now.AddMilliseconds(ReloadDelayMilliseconds);
+                        }
+                    }
+                    catch (IOException exception)
+                    {
+                        _logger.LogWarning($"Could not check config modification time: {exception.Message}");
+                    }
+                }
+
                 if (_disposed || !_reloadPending || DateTime.UtcNow < _reloadNotBeforeUtc)
                 {
                     return;
