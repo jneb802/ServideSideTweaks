@@ -27,6 +27,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> ValheimEnforcerGroupModPolicyFile = null!;
         internal static ConfigEntry<bool> DebugValheimEnforcerGroupModPolicy = null!;
         internal static ConfigEntry<bool> EnablePersistentEventPlacement = null!;
+        internal static ConfigEntry<Heightmap.Biome> PersistentEventAllowedBiomes = null!;
         internal static ConfigEntry<string> PersistentEventProtectedPrefabs = null!;
         internal static ConfigEntry<float> PersistentEventPrefabClearance = null!;
         internal static ConfigEntry<bool> DebugPersistentEventPlacement = null!;
@@ -35,13 +36,16 @@ namespace ServerSideTweaks
         {
             EnablePersistentEventPlacement = config.Bind(
                 "PersistentEvents", "EnablePlacementRestrictions", true,
-                "Restricts new invasion event centers to Mountains or Plains and keeps their maximum radius clear of configured prefabs. Server only; existing events are unchanged.");
+                "Restricts new invasion event centers to AllowedBiomes and keeps their maximum radius clear of configured prefabs. Server only; existing events are unchanged.");
+            PersistentEventAllowedBiomes = config.Bind(
+                "PersistentEvents", "AllowedBiomes", Heightmap.Biome.DeepNorth,
+                "Replaces the game's biome list for new Jotun invasion centers. Use comma-separated biome names, for example Mountain, Plains. DeepNorth is the Deep North biome. None prevents new invasions while placement restrictions are enabled. Other placement rules still apply; existing events are unchanged.");
             PersistentEventProtectedPrefabs = config.Bind(
                 "PersistentEvents", "ProtectedPrefabs", "guard_stone",
                 "Comma-separated, case-sensitive networked prefab names. All stored instances are protected, including unloaded objects and disabled wards. Empty disables prefab exclusion only.");
             PersistentEventPrefabClearance = config.Bind(
                 "PersistentEvents", "PrefabClearance", 100f,
-                new ConfigDescription("Minimum horizontal distance in metres from a protected prefab to the event's maximum outer edge. Added to the configured maximum event radius.",
+                new ConfigDescription("Ward exclusion radius in metres, also used for other ProtectedPrefabs. The event's maximum outer edge must stay outside this radius around each protected object. Measured horizontally; includes disabled wards. Does not change the ward's own build/access protection radius.",
                     new AcceptableValueRange<float>(0f, 10000f)));
             DebugPersistentEventPlacement = config.Bind(
                 "PersistentEvents", "DebugPlacement", false,
