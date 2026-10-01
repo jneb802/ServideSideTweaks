@@ -1,89 +1,54 @@
 using System;
 using System.IO;
-using BepInEx;
+using System.Security.Cryptography;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 
 namespace ServerSideTweaks
 {
-    internal sealed class ConfigWatcher : IDisposable
+    internal sealed class ConfigWatcher
     {
-        private const int ReloadDelayMilliseconds = 1000;
-
+        private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
         private readonly ConfigFile _config;
-        private readonly string _configFileFullPath;
-        private readonly string _configFileName;
         private readonly ManualLogSource _logger;
-        private readonly object _stateLock = new object();
-        private readonly FileSystemWatcher _watcher;
-        private DateTime _reloadNotBeforeUtc;
-        private bool _reloadPending;
-        private bool _disposed;
+        private string? _appliedContent;
+        private string? _pendingContent;
+        private DateTime _pendingSinceUtc;
+        private DateTime _nextPollUtc;
 
-        internal ConfigWatcher(ConfigFile config, string modGuid, ManualLogSource logger)
+        internal ConfigWatcher(ConfigFile config, ManualLogSource logger)
         {
             _config = config;
-            _configFileName = modGuid + ".cfg";
-            _configFileFullPath = Path.Combine(Paths.ConfigPath, _configFileName);
             _logger = logger;
-
-            _watcher = new FileSystemWatcher(Paths.ConfigPath, _configFileName)
-            {
-                IncludeSubdirectories = false,
-                EnableRaisingEvents = true
-            };
-            _watcher.Changed += ScheduleReload;
-            _watcher.Created += ScheduleReload;
-            _watcher.Renamed += ScheduleReload;
-        }
-
-        public void Dispose()
-        {
-            lock (_stateLock)
-            {
-                _disposed = true;
-                _reloadPending = false;
-            }
-
-            _watcher.EnableRaisingEvents = false;
-            _watcher.Changed -= ScheduleReload;
-            _watcher.Created -= ScheduleReload;
-            _watcher.Renamed -= ScheduleReload;
-            _watcher.Dispose();
+            _appliedContent = ReadContentHash();
         }
 
         internal void Update()
         {
-            lock (_stateLock)
+            DateTime now = DateTime.UtcNow;
+            if (now < _nextPollUtc)
             {
-                if (_disposed || !_reloadPending || DateTime.UtcNow < _reloadNotBeforeUtc)
-                {
-                    return;
-                }
-
-                _reloadPending = false;
+                return;
             }
 
-            ReloadConfig();
-        }
-
-        private void ScheduleReload(object sender, FileSystemEventArgs e)
-        {
-            lock (_stateLock)
+            _nextPollUtc = now.Add(PollInterval);
+            string? content = ReadContentHash();
+            if (content == null || content == _appliedContent)
             {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                _reloadPending = true;
-                _reloadNotBeforeUtc = DateTime.UtcNow.AddMilliseconds(ReloadDelayMilliseconds);
+                _pendingContent = null;
+                return;
             }
-        }
 
-        private void ReloadConfig()
-        {
-            if (!File.Exists(_configFileFullPath))
+            // Require a stable file across two polls so an editor can finish its write.
+            // Poll contents because file watcher events were missed on the Linux profile.
+            if (content != _pendingContent)
+            {
+                _pendingContent = content;
+                _pendingSinceUtc = now;
+                return;
+            }
+
+            if (now - _pendingSinceUtc < PollInterval)
             {
                 return;
             }
@@ -94,15 +59,36 @@ namespace ServerSideTweaks
                 _logger.LogInfo("Attempting to reload configuration...");
                 _config.SaveOnConfigSet = false;
                 _config.Reload();
+                _appliedContent = content;
+                _pendingContent = null;
                 _logger.LogInfo("Configuration reloaded successfully.");
             }
             catch (Exception exception)
             {
-                _logger.LogError($"There was an issue loading {_configFileName}: {exception}");
+                _logger.LogError($"There was an issue loading {_config.ConfigFilePath}: {exception}");
             }
             finally
             {
                 _config.SaveOnConfigSet = saveOnConfigSet;
+            }
+        }
+
+        private string? ReadContentHash()
+        {
+            try
+            {
+                using FileStream stream = new(_config.ConfigFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using SHA256 hash = SHA256.Create();
+                return Convert.ToBase64String(hash.ComputeHash(stream));
+            }
+            catch (IOException)
+            {
+                // A missing, replaced, or busy file is retried on the next poll.
+                return null;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
             }
         }
     }

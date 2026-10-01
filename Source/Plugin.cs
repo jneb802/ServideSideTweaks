@@ -34,14 +34,13 @@ namespace ServerSideTweaks
             _harmony.PatchAll(assembly);
             ValheimEnforcerGroupModPolicy.TryPatch(_harmony);
             ValheimEnforcerKickAlerts.TryPatch(_harmony);
-            _configWatcher = new ConfigWatcher(Config, ModGUID, ModLogger);
+            _configWatcher = new ConfigWatcher(Config, ModLogger);
             ModLogger.LogInfo($"{ModName} {ModVersion} loaded.");
         }
 
         private void OnDestroy()
         {
             _harmony.UnpatchSelf();
-            _configWatcher?.Dispose();
             Instance = null;
         }
 
