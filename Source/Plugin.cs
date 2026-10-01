@@ -3,6 +3,7 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using ServerSideTweaks.Features.Bosses;
+using ServerSideTweaks.Features.BossStones;
 using ServerSideTweaks.Features.Locations;
 using ServerSideTweaks.Features.ValheimEnforcer;
 using ServerSideTweaks.Features.Vendors;
@@ -15,7 +16,7 @@ namespace ServerSideTweaks
     public class ServerSideTweaksPlugin : BaseUnityPlugin
     {
         private const string ModName = "serverSideTweaks";
-        private const string ModVersion = "1.1.21";
+        private const string ModVersion = "1.1.22";
         private const string ModGUID = "warpalicious.serverSideTweaks";
 
         private readonly Harmony _harmony = new(ModGUID);
@@ -47,6 +48,7 @@ namespace ServerSideTweaks
         private void Update()
         {
             _configWatcher?.Update();
+            StoneCircleGlobalKeyBlock.Update();
             HarmonyPatchDiagnostics.LogOnceWhenReady();
             VendorItemsPerPlayer.Update();
         }
