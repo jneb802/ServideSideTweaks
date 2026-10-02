@@ -18,6 +18,7 @@ namespace ServerSideTweaks
         internal static ConfigEntry<string> VendorProgressGlobalKeys = null!;
         internal static ConfigEntry<string> VendorProgressFile = null!;
         internal static ConfigEntry<bool> EnableBossStoneTrophyPlacementBlock = null!;
+        internal static ConfigEntry<bool> BlockStoneCircleGlobalKey = null!;
         internal static ConfigEntry<bool> DebugBossLocationDiscovery = null!;
         internal static ConfigEntry<bool> EnableValheimEnforcerKickAlerts = null!;
         internal static ConfigEntry<string> ValheimEnforcerKickAlertBotUrl = null!;
@@ -134,6 +135,10 @@ namespace ServerSideTweaks
                 "EnableBossStoneTrophyPlacementBlock",
                 true,
                 "When true, prevents players from placing trophies on start-temple boss stones.");
+
+            BlockStoneCircleGlobalKey = config.Bind(
+                "BossStoneTrophies", "BlockStoneCircleGlobalKey", true,
+                "Server only. Prevents the StoneCircle global key from loading or being set, and removes it if already active. Disables the temple Valkyrie and ending unlocks tied to this key. Clients must reload the area to hide an already visible Valkyrie. Setting false permits future activation; it does not restore a removed key.");
 
             DebugBossLocationDiscovery = config.Bind(
                 "BossStoneTrophies",
