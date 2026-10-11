@@ -29,6 +29,8 @@ Deploy the bot's matching message-format update before this server DLL. Older
 bot versions do not display the new field. Apply the policy change with the
 normal server configuration workflow. The DLL change alone does not override
 the server's version policy.
+Keep the live and staged release policies aligned so the next release preserves
+the greylist version rules.
 
 This alert path handles server mod validation. A disconnect initiated only by a
 client mod is not reported through this path.
