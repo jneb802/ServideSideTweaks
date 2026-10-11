@@ -126,6 +126,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
 
             var missing = new List<ModIssue>();
             var mismatches = new List<ModIssue>();
+            List<ModIssue> greylistMismatches = new();
             var extras = new List<ModIssue>();
 
             foreach (var requiredMod in required.Values)
@@ -160,14 +161,14 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
 
                 if (optional.TryGetValue(clientMod.Key, out ModIssue optionalMod))
                 {
-                    AddMismatchIfNeeded(mismatches, optionalMod, clientMod, enforceForThisPlayer: true);
+                    AddMismatchIfNeeded(greylistMismatches, optionalMod, clientMod, enforceForThisPlayer: true);
                     continue;
                 }
 
                 extras.Add(clientMod);
             }
 
-            return new ValidationReport(playerId, playerName, endpoint, missing, mismatches, extras);
+            return new ValidationReport(playerId, playerName, endpoint, missing, mismatches, greylistMismatches, extras);
         }
 
         private static void AddMismatchIfNeeded(
@@ -298,6 +299,8 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             AppendIssueArray(builder, "missing_required_mods", report.MissingRequiredMods);
             builder.Append(",");
             AppendIssueArray(builder, "version_mismatches", report.VersionMismatches);
+            builder.Append(",");
+            AppendIssueArray(builder, "greylist_version_mismatches", report.GreylistVersionMismatches);
             builder.Append(",");
             AppendIssueArray(builder, "extra_mods", report.ExtraMods);
             builder.Append("}");
@@ -644,6 +647,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
             public string Endpoint { get; }
             public IReadOnlyList<ModIssue> MissingRequiredMods { get; }
             public IReadOnlyList<ModIssue> VersionMismatches { get; }
+            public IReadOnlyList<ModIssue> GreylistVersionMismatches { get; }
             public IReadOnlyList<ModIssue> ExtraMods { get; }
 
             public ValidationReport(
@@ -652,6 +656,7 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                 string endpoint,
                 IReadOnlyList<ModIssue> missingRequiredMods,
                 IReadOnlyList<ModIssue> versionMismatches,
+                IReadOnlyList<ModIssue> greylistVersionMismatches,
                 IReadOnlyList<ModIssue> extraMods)
             {
                 PlayerId = playerId;
@@ -659,21 +664,25 @@ namespace ServerSideTweaks.Features.ValheimEnforcer
                 Endpoint = endpoint;
                 MissingRequiredMods = missingRequiredMods;
                 VersionMismatches = versionMismatches;
+                GreylistVersionMismatches = greylistVersionMismatches;
                 ExtraMods = extraMods;
             }
 
             public bool IsValid => MissingRequiredMods.Count == 0 &&
                                    VersionMismatches.Count == 0 &&
+                                   GreylistVersionMismatches.Count == 0 &&
                                    ExtraMods.Count == 0;
 
             public string Summary =>
                 MissingRequiredMods.Count + " missing, " +
                 VersionMismatches.Count + " version mismatch, " +
+                GreylistVersionMismatches.Count + " greylist version mismatch, " +
                 ExtraMods.Count + " extra";
 
             public string Fingerprint =>
                 string.Join(",", MissingRequiredMods.Select(issue => "missing:" + issue.Key)
                     .Concat(VersionMismatches.Select(issue => "version:" + issue.Key + ":" + issue.ActualVersion))
+                    .Concat(GreylistVersionMismatches.Select(issue => "greylist:" + issue.Key + ":" + issue.ActualVersion + ":" + issue.ExpectedVersion))
                     .Concat(ExtraMods.Select(issue => "extra:" + issue.Key)));
 
             public string DescribePlayer()
